@@ -2,14 +2,17 @@
 # Ogni mattina (LaunchAgent com.masrepassaro.nummo-pubblica, 7:50 e 9:50): programma su Metricool
 # il post del giorno di Nummo. Passa dal connettore Metricool dell'account di Luca, ma un guardiano
 # (notte/controlla-pubblicazione.mjs) consente solo il post preparato, e solo sul brand di Nummo.
-# Uso a mano: strumenti/pubblica.sh
+# Uso a mano: strumenti/pubblica.sh        → il post del giorno
+#             strumenti/pubblica.sh casa   → il post che Nummo ha preparato di notte (lo lancia il turno di notte)
 cd "$(dirname "$0")/.." || exit 1
 export PATH="$HOME/.local/bin:$HOME/.local/node22/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"
 C=$(ls -d ~/.vscode/extensions/anthropic.claude-code-*-darwin-arm64/resources/native-binary/claude | sort -V | tail -1)
 N=$PWD
 
 git pull -q --rebase --autostash origin main || { echo "Non riesco ad allinearmi con GitHub."; exit 1; }
-esito=$(node src/pubblica.mjs prepara); echo "$esito"
+if [ "$1" = casa ]; then esito=$(node src/pubblica.mjs prepara-casa /Users/Shared/nummo-casa/lavoro/da-pubblicare.json)
+else esito=$(node src/pubblica.mjs prepara); fi
+echo "$esito"
 [[ "$esito" == pronto* ]] || exit 0
 
 # L'immagine dev'essere già online: Metricool la scarica dall'indirizzo pubblico.
@@ -33,4 +36,4 @@ risposta=$(node -e "try{const r=JSON.parse(require('fs').readFileSync('notte/ult
 echo "$risposta"
 [[ "$risposta" == OK* ]] || exit 1
 node src/pubblica.mjs fatto "${risposta#OK }"
-git add dati && git commit -q -m "Post del giorno programmato su Metricool" && git push -q origin main
+git add dati && git commit -q -m "Post ${1:+della notte }programmato su Metricool" && git pull -q --rebase origin main && git push -q origin main

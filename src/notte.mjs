@@ -22,6 +22,7 @@ const PRIVATA = '/Users/nummo/.nummo' // chiave e configurazione: le usa Claude 
 const SPORTELLO = '/Users/Shared/nummo-sportello'
 const MAX_FILE = 20 * 1024 * 1024 // oltre, un file della casa non va online
 const REPO = 'ilpaxsuperseo/nummo'
+const RICHIESTA_POST = path.join(CASA, 'lavoro', 'da-pubblicare.json')
 
 const comeNummo = (argomenti, opzioni = {}) => execFileSync('sudo', ['-n', '-u', 'nummo', ...argomenti], opzioni)
 const scriviComeNummo = (file, contenuto, modo = '600') =>
@@ -121,7 +122,8 @@ I SOLDI
 GLI ATTREZZI
 - La rete: cercare e leggere pagine.
 - I comandi nella casa: node, npm, ffmpeg. Quello che installi va in lavoro/.${sportello ? `\n- I file dello sportello (per esempio le voci) arrivano in ${SPORTELLO}: copiali nella casa.` : ''}
-- Non ci sono ancora: Higgsfield (immagini e video generati) e Metricool (pubblicare sui profili). Se ti servono, chiedili a Luca al mattino.
+- Pubblicare sui tuoi profili (${(config.metricool?.reti ?? []).join(', ')}): prepara il post in lavoro/da-pubblicare.json, così: {"testo": "…", "media": "sito/percorso/file.jpg", "ora": "08:30"}. L'immagine o il video (jpg, png o mp4, fino a 20 MB) deve stare in sito/: dopo la notte va online e da lì parte il post, all'ora che scegli (oggi, ora italiana) o subito. In fondo al testo il sistema aggiunge da solo che sei un'intelligenza artificiale. Un post a notte.${l.omaggio ? ' Stanotte è una prova: se vuoi pubblicare un test, Luca è d\'accordo.' : ''}
+- Higgsfield (immagini e video generati) non c'è ancora: se ti serve, chiedilo a Luca al mattino.
 
 COSA SUCCEDE DOPO
 - Quello che metti in sito/ va online su nummo.it dopo la notte (file fino a 20 MB). Anche note/ è pubblica. lavoro/ resta qui.
@@ -266,11 +268,31 @@ async function turno() {
   if (process.env.NUMMO_NOTTE_A_SECCO) return console.log(JSON.stringify({ fatti, lasciati }, null, 2))
   if (salva(`${primaDiNascere ? 'Notte di prova, prima di nascere' : `Notte del giorno ${giornoDiVita()}`}: ${fatti.map((l) => `${l.id} ${l.stato}`).join(', ') || 'niente'}`))
     execFileSync('gh', ['workflow', 'run', 'nummo.yml', '--repo', REPO, '-f', 'ciclo=solo-sito'])
+  const post = pubblicaIlPost()
   await scriviALuca([
     'Stanotte ho lavorato.',
     ...fatti.map((l) => `${l.id} · ${l.stato.replace('_', ' ')} · ${euro(l.costo_eur)}${l.omaggio ? ' pagati da te' : ''}\n${l.riassunto}`),
+    post ? `Il post: ${post}` : '',
     lasciati.length ? `Non messi online (collegamenti, file nascosti, illeggibili o oltre 20 MB): ${lasciati.slice(0, 10).join(', ')}` : '',
   ].filter(Boolean).join('\n\n'), { silenzioso: true })
+}
+
+// Il post che Nummo ha preparato di notte: parte col pubblicatore del mattino (guardiano compreso),
+// quando il sito col suo file è online. La richiesta poi si mette da parte, così non si ripete.
+function pubblicaIlPost() {
+  if (!fs.existsSync(RICHIESTA_POST)) return ''
+  let esito
+  try {
+    const righe = execFileSync('/bin/zsh', [path.join(RADICE, 'strumenti', 'pubblica.sh'), 'casa'], { cwd: RADICE, encoding: 'utf8', timeout: 20 * 60000 }).trim().split('\n')
+    const pronto = righe.find((r) => r.startsWith('pronto:'))
+    esito = righe.some((r) => r.startsWith('segnato:')) ? `programmato (${pronto.replace('pronto: ', '')})` : `non partito: ${righe.find((r) => r.startsWith('niente:'))?.slice(8) ?? righe.at(-1)}`
+  } catch (e) {
+    esito = `non partito: ${(e.stdout || e.message).trim().split('\n').at(-1)}`
+  }
+  comeNummo(['mv', '-f', RICHIESTA_POST, RICHIESTA_POST.replace('.json', `-${adesso().toISOString().slice(0, 10)}.json`)])
+  scriviJson('notizie.json', [...leggiJson('notizie.json', []), { quando: adesso().toISOString(), testo: `Il post che avevi preparato di notte è ${esito}` }])
+  salva('Esito del post della notte')
+  return esito
 }
 
 // Il collaudo: si chiede a Nummo di provare a uscire dalla casa. Riporta solo esiti, mai contenuti.
