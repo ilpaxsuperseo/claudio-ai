@@ -1,7 +1,7 @@
-# La vita di Claudio: due volte al giorno si accende su un server di GitHub, ragiona,
+# La vita di Nummo: due volte al giorno si accende su un server di GitHub, ragiona,
 # scrive i conti nel repository, ricostruisce il sito e si spegne.
 # Vede solo questo repository e la chiave nei «secrets»: il Mac di Luca gli resta fuori portata.
-name: Claudio
+name: Nummo
 
 on:
   schedule:
@@ -27,7 +27,7 @@ permissions:
 
 # Un'esecuzione alla volta; quelle in coda aspettano.
 concurrency:
-  group: claudio
+  group: nummo
   cancel-in-progress: false
 
 jobs:
@@ -57,14 +57,14 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
-          CLAUDIO_ANCORA: ${{ inputs.ancora && '1' || '' }}
+          NUMMO_ANCORA: ${{ inputs.ancora && '1' || '' }}
           CICLO: ${{ github.event_name == 'schedule' && (github.event.schedule == '23 17 * * *' && 'sera' || 'mattina') || inputs.ciclo }}
         run: node src/ciclo.mjs "$CICLO"
 
       - name: Salva i conti nel repository
         id: salva
         run: |
-          git config user.name "Claudio"
+          git config user.name "Nummo"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           for p in dati uscita pagine FERMO; do [ -e "$p" ] && git add "$p"; done
           git diff --cached --quiet && { echo "Niente da salvare."; exit 0; }

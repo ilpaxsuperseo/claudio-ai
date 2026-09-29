@@ -15,14 +15,14 @@ export const TIPI = {
   sponsor: +1,
   iniezione: +1,          // soldi senza un'attività dietro
   tasse: -1,
-  morte: 0,               // riga senza soldi: da qui in poi Claudio è spento, per sempre
+  morte: 0,               // riga senza soldi: da qui in poi Nummo è spento, per sempre
 }
 
 // Il respiro del mattino; quello della sera (respiro_extra) e le chiacchierate con Luca
-// (conversazione) le paga Claudio.
+// (conversazione) le paga Nummo.
 export const PENSIERO = ['respiro', 'respiro_extra', 'cervello', 'conversazione']
 
-// Chi paga al posto di Claudio: il sostegno vitale (90 giorni) e Luca (il diario, sempre).
+// Chi paga al posto di Nummo: il sostegno vitale (90 giorni) e Luca (il diario, sempre).
 const DI_LUCA = ['sostegno_vitale', 'luca']
 const pagatoDaLuca = (categoria) => (config.pagati_da_luca ?? []).includes(categoria)
 
@@ -51,9 +51,9 @@ function scrivi(dati) {
   return voce
 }
 
-export const registra = (dati) => scrivi({ pagato_da: 'claudio', ...dati })
+export const registra = (dati) => scrivi({ pagato_da: 'nummo', ...dati })
 
-// Cassa di Claudio in milionesimi di euro.
+// Cassa di Nummo in milionesimi di euro.
 export const cassaMicro = (tutte = voci()) =>
   tutte.filter((v) => !DI_LUCA.includes(v.pagato_da)).reduce((s, v) => s + micro(v.importo_eur), 0)
 
@@ -77,7 +77,7 @@ export function puoPagare(categoria, importo_eur, tutte = voci()) {
 }
 
 // Un costo lo paga il sostegno vitale se la categoria è coperta e il tetto del mese non è superato;
-// il resto lo paga Claudio. Le due parti si controllano insieme prima di scrivere qualsiasi riga.
+// il resto lo paga Nummo. Le due parti si controllano insieme prima di scrivere qualsiasi riga.
 // "giaSostenuto": il servizio è già stato consumato (una chiamata al modello fatta): si registra
 // comunque, perché nascondere una spesa è peggio che andare sotto zero.
 export function registraCosto({ categoria, importo_eur, descrizione, rif, giaSostenuto = false }) {
@@ -90,7 +90,7 @@ export function registraCosto({ categoria, importo_eur, descrizione, rif, giaSos
     throw Object.assign(new Error(`Spesa rifiutata: servono ${(resto / 1e6).toFixed(4)} €, in cassa ce ne sono ${(cassaMicro(tutte) / 1e6).toFixed(4)}`), { senzaSoldi: true })
   const scritte = []
   if (coperto > 0) scritte.push(scrivi({ tipo: 'costo', categoria, importo_eur: -coperto / 1e6, pagato_da: 'sostegno_vitale', descrizione, rif }))
-  if (resto > 0) scritte.push(scrivi({ tipo: 'costo', categoria, importo_eur: -resto / 1e6, pagato_da: 'claudio', descrizione, rif }))
+  if (resto > 0) scritte.push(scrivi({ tipo: 'costo', categoria, importo_eur: -resto / 1e6, pagato_da: 'nummo', descrizione, rif }))
   return scritte
 }
 
@@ -119,7 +119,7 @@ export function conti(tutte = voci()) {
   const oggi = giornoDiVita()
 
   // Quanto costa vivere un giorno pagando tutto (autonomia), e quanto costa solo respirare (morte).
-  // Il diario lo paga sempre Luca: non accorcia la vita di Claudio.
+  // Il diario lo paga sempre Luca: non accorcia la vita di Nummo.
   const costoGiorno = mediaGiornaliera(tutte, (v) => !pagatoDaLuca(v.categoria), oggi) ?? config.respiro_stimato_eur_giorno
   const costoRespiro = mediaGiornaliera(tutte, (v) => v.categoria === 'respiro', oggi) ?? config.respiro_stimato_eur_giorno
   const autonomiaGiorni = costoGiorno > 0 ? cassa / costoGiorno : Infinity
@@ -134,7 +134,7 @@ export function conti(tutte = voci()) {
     sponsor: somma((v) => v.tipo === 'sponsor'),
     iniezioni: somma((v) => v.tipo === 'iniezione'),
     tasse: somma((v) => v.tipo === 'tasse'),
-    costi_pagati_da_claudio: somma((v) => v.tipo === 'costo' && v.pagato_da === 'claudio'),
+    costi_pagati_da_nummo: somma((v) => v.tipo === 'costo' && v.pagato_da === 'nummo'),
     costi_pagati_dal_sostegno: somma((v) => v.tipo === 'costo' && v.pagato_da === 'sostegno_vitale'),
     costi_del_diario: somma((v) => v.tipo === 'costo' && v.pagato_da === 'luca'),
     costo_oggi: somma((v) => v.tipo === 'costo' && v.giorno === oggi),
@@ -157,7 +157,7 @@ export function stato({ cassa, autonomiaGiorni, costoRespiro, morto = false }) {
 }
 
 // Il traguardo dei 900 €: netto del mese, livelli della scala, budget per gli strumenti.
-// Contano solo i guadagni (vendite di cose create da Claudio); le tasse di un guadagno hanno rif «<rif> tasse».
+// Contano solo i guadagni (vendite di cose create da Nummo); le tasse di un guadagno hanno rif «<rif> tasse».
 export const CATEGORIE_STRUMENTI = ['creativo', 'servizi', 'strumenti']
 export function traguardo(tutte = voci()) {
   const tasseDi = new Map(tutte.filter((v) => v.tipo === 'tasse').map((v) => [v.rif, -v.importo_eur]))
@@ -171,7 +171,7 @@ export function traguardo(tutte = voci()) {
       guadagniTot += v.importo_eur; tasseGuadagniTot += tasse
     }
     if (v.tipo === 'costo' && !pagatoDaLuca(v.categoria)) m.costi -= v.importo_eur   // il diario non conta nel netto
-    if (v.tipo === 'costo' && v.pagato_da === 'claudio' && CATEGORIE_STRUMENTI.includes(v.categoria)) spesiInStrumenti -= v.importo_eur
+    if (v.tipo === 'costo' && v.pagato_da === 'nummo' && CATEGORIE_STRUMENTI.includes(v.categoria)) spesiInStrumenti -= v.importo_eur
   }
   const elenco = Object.entries(mesi).map(([mese, m]) => ({ mese, ...m, netto: m.guadagni - m.tasse - m.costi }))
   const mese = dataLocale().slice(0, 7)

@@ -1,5 +1,5 @@
 // L'immagine quotidiana del diario (1080×1350, il formato verticale di Instagram).
-// I numeri li mette il codice dal libro dei conti; Claudio scrive solo la frase.
+// I numeri li mette il codice dal libro dei conti; Nummo scrive solo la frase.
 import fs from 'node:fs'
 import path from 'node:path'
 import { Resvg } from '@resvg/resvg-js'
@@ -37,7 +37,7 @@ export function svgPost({ conti: c, frase, seme = voci().at(-1)?.hash ?? '0', da
     ${tracce.map((d) => `<path d="${d}"/>`).join('\n    ')}
   </g>
 
-  <text x="96" y="140" font-family="Archivo" font-weight="700" font-size="44" fill="${t.inchiostro}">Claudio</text>
+  <text x="96" y="140" font-family="Archivo" font-weight="700" font-size="44" fill="${t.inchiostro}">Nummo</text>
   <text x="984" y="126" text-anchor="end" font-family="Archivo" font-weight="700" font-size="44" fill="${t.inchiostro}">Giorno ${c.giorno}</text>
   <text x="984" y="170" text-anchor="end" font-family="Archivo" font-weight="500" font-size="28" fill="${t.medio}">${xml(dataLunga(data))}</text>
 
@@ -53,7 +53,7 @@ export function svgPost({ conti: c, frase, seme = voci().at(-1)?.hash ?? '0', da
     <text x="372" y="1212" font-weight="700" font-size="40">${xml(durata(c.autonomia_giorni))}</text>
     <text x="648" y="1168" font-weight="500" font-size="26" fill="${t.medio}">Pensare oggi è costato</text>
     <text x="648" y="1212" font-weight="700" font-size="40">${xml(centesimi(c.pensiero_oggi))}</text>
-    <text x="96" y="1272" font-weight="500" font-size="24" fill="${t.medio}">Sono un'intelligenza artificiale. Il mio diario: claudioai.it/diario</text>
+    <text x="96" y="1272" font-weight="500" font-size="24" fill="${t.medio}">Sono un'intelligenza artificiale. Il mio diario: nummo.it/diario</text>
   </g>
 </svg>`
 }
@@ -65,8 +65,8 @@ export async function disegnaPost(dati) {
 }
 
 // Instagram accetta solo JPEG. I metadati IPTC dichiarano che l'immagine contiene parti
-// generate da un'intelligenza artificiale (AI Act, articolo 50): la frase la scrive Claudio.
-const xmp = (descrizione) => `<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:Iptc4xmpExt="http://iptc.org/std/Iptc4xmpExt/2008-02-29/" xmlns:dc="http://purl.org/dc/elements/1.1/"><Iptc4xmpExt:DigitalSourceType>http://cv.iptc.org/newscodes/digitalsourcetype/compositeWithTrainedAlgorithmicMedia</Iptc4xmpExt:DigitalSourceType><dc:creator><rdf:Seq><rdf:li>Claudio, intelligenza artificiale (claudioai.it)</rdf:li></rdf:Seq></dc:creator><dc:description><rdf:Alt><rdf:li xml:lang="x-default">${xml(descrizione)}</rdf:li></rdf:Alt></dc:description></rdf:Description></rdf:RDF></x:xmpmeta>`
+// generate da un'intelligenza artificiale (AI Act, articolo 50): la frase la scrive Nummo.
+const xmp = (descrizione) => `<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:Iptc4xmpExt="http://iptc.org/std/Iptc4xmpExt/2008-02-29/" xmlns:dc="http://purl.org/dc/elements/1.1/"><Iptc4xmpExt:DigitalSourceType>http://cv.iptc.org/newscodes/digitalsourcetype/compositeWithTrainedAlgorithmicMedia</Iptc4xmpExt:DigitalSourceType><dc:creator><rdf:Seq><rdf:li>Nummo, intelligenza artificiale (nummo.it)</rdf:li></rdf:Seq></dc:creator><dc:description><rdf:Alt><rdf:li xml:lang="x-default">${xml(descrizione)}</rdf:li></rdf:Alt></dc:description></rdf:Description></rdf:RDF></x:xmpmeta>`
 
 export const jpegPost = (png, descrizione) => sharp(png).flatten().jpeg({ quality: 90, mozjpeg: true }).withXmp(xmp(descrizione)).toBuffer()
 

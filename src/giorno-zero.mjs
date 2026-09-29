@@ -53,7 +53,7 @@ async function main() {
     if (!process.argv.includes('--mostra')) console.log('Il giorno zero è già stato fatto: la risposta vale e non si rifà.')
     return mostra(giaFatto)
   }
-  if (process.env.CLAUDIO_CERVELLO !== 'finto' && !process.env.ANTHROPIC_API_KEY) throw new Error('Manca ANTHROPIC_API_KEY (nel file .env).')
+  if (process.env.NUMMO_CERVELLO !== 'finto' && !process.env.ANTHROPIC_API_KEY) throw new Error('Manca ANTHROPIC_API_KEY (nel file .env).')
 
   // Il veto: solo per ragioni legali, col motivo scritto e pubblico. Una volta sola.
   let messaggio = FATTI

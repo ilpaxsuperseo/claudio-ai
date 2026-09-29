@@ -1,4 +1,4 @@
-// L'identità di Claudio è una banconota: prende il colore del taglio che vale la sua cassa
+// L'identità di Nummo è una banconota: prende il colore del taglio che vale la sua cassa
 // (verde come i 100, arancio come i 50, blu come i 20…) e ogni giorno ha un disegno di
 // sicurezza diverso, generato dall'impronta dell'ultima riga del libro dei conti.
 // Solo i colori e la tecnica del guilloché: nessun elemento delle banconote vere.

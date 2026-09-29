@@ -7,8 +7,8 @@ import { voci, conti, serieCassa, verificaCatena, traguardo } from './registro.m
 import { elencoPagine, htmlPagina } from './pagine.mjs'
 import { taglio, rosone, NOMI_STATO, durata, eurItaliani, centesimi, xml } from './banconota.mjs'
 
-const USCITA = path.join(RADICE, process.env.CLAUDIO_SITO || 'sito')
-const CARTELLA_POST = path.join(RADICE, process.env.CLAUDIO_USCITA || 'uscita')
+const USCITA = path.join(RADICE, process.env.NUMMO_SITO || 'sito')
+const CARTELLA_POST = path.join(RADICE, process.env.NUMMO_USCITA || 'uscita')
 
 const dataLunga = (iso) => new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso.slice(0, 10)))
 const nomeMese = (aaaamm) => new Intl.DateTimeFormat('it-IT', { month: 'long', timeZone: 'UTC' }).format(new Date(`${aaaamm}-15`))
@@ -42,7 +42,7 @@ function grafico(serie, { L, A, corpo, classe }) {
   })
   const linea = serie.map((p, i) => `${i ? 'L' : 'M'}${x(p.giorno).toFixed(1)},${y(p.cassa).toFixed(1)}`).join('')
   const ultimo = serie.at(-1)
-  return `<svg class="grafico ${classe}" viewBox="0 0 ${L} ${A}" role="img" aria-label="La cassa di Claudio giorno per giorno: dal giorno 1 al giorno ${ultimo.giorno}, da ${eurItaliani(serie[0].cassa)} a ${eurItaliani(ultimo.cassa)} euro. Il sostegno vitale finisce al giorno ${fine}." style="font-size:${corpo}px">
+  return `<svg class="grafico ${classe}" viewBox="0 0 ${L} ${A}" role="img" aria-label="La cassa di Nummo giorno per giorno: dal giorno 1 al giorno ${ultimo.giorno}, da ${eurItaliani(serie[0].cassa)} a ${eurItaliani(ultimo.cassa)} euro. Il sostegno vitale finisce al giorno ${fine}." style="font-size:${corpo}px">
     ${soglie.join('')}
     <line x1="${x(fine)}" x2="${x(fine)}" y1="${alto}" y2="${A - basso}" class="fine"/>
     <text x="${x(fine)}" y="${A - basso + corpo * 1.5}" text-anchor="end" class="etichetta">giorno ${fine}, fine del sostegno</text>
@@ -52,7 +52,7 @@ function grafico(serie, { L, A, corpo, classe }) {
   </svg>`
 }
 
-// Lo stile della pagina, con i colori del taglio di oggi. «radice» serve alle pagine di Claudio, un livello più in basso.
+// Lo stile della pagina, con i colori del taglio di oggi. «radice» serve alle pagine di Nummo, un livello più in basso.
 const stile = (t, radice = '') => `@font-face { font-family: "Archivo Expanded"; font-weight: 800; src: url(${radice}caratteri/archivo-largo-800.woff2) format("woff2"); font-display: swap; }
 @font-face { font-family: Archivo; font-weight: 500; src: url(${radice}caratteri/archivo-500.woff2) format("woff2"); font-display: swap; }
 @font-face { font-family: Archivo; font-weight: 700; src: url(${radice}caratteri/archivo-700.woff2) format("woff2"); font-display: swap; }
@@ -178,10 +178,10 @@ td.impronta { color: var(--medio); font-size: .85rem; }
 }
 `
 
-// Il piè di pagina obbligatorio: su ogni pagina del sito, qualunque cosa Claudio costruisca,
-// c'è la dichiarazione e il link al diario. Lo mette il codice: Claudio non lo può togliere.
+// Il piè di pagina obbligatorio: su ogni pagina del sito, qualunque cosa Nummo costruisca,
+// c'è la dichiarazione e il link al diario. Lo mette il codice: Nummo non lo può togliere.
 const piede = (radice = '') => `<footer class="piede">
-    <p>Sono Claudio, un'intelligenza artificiale: questo sito è un esperimento pubblico. Ho ricevuto 100 euro e devo mantenermi da solo.</p>
+    <p>Sono Nummo, un'intelligenza artificiale: questo sito è un esperimento pubblico. Ho ricevuto 100 euro e devo mantenermi da solo.</p>
     <nav class="piede-link" aria-label="L'esperimento"><a href="${radice}diario/">Il diario</a><a href="${radice}#conti">I conti</a><a href="${radice}#regole">Le regole</a><a href="${radice}#dietro">Chi c'è dietro</a></nav>
   </footer>`
 
@@ -229,7 +229,7 @@ function costruisci() {
   fs.mkdirSync(path.join(USCITA, 'dati'))
   for (const f of ['registro.jsonl', 'diario.jsonl', 'conversazioni.jsonl', 'giorno-zero.json']) if (fs.existsSync(path.join(DATI, f))) fs.copyFileSync(path.join(DATI, f), path.join(USCITA, 'dati', f))
   fs.copyFileSync(path.join(RADICE, 'costituzione.yaml'), path.join(USCITA, 'dati', 'costituzione.yaml'))
-  if (process.env.CLAUDIO_DOMINIO !== 'no') fs.writeFileSync(path.join(USCITA, 'CNAME'), 'claudioai.it\n')
+  if (process.env.NUMMO_DOMINIO !== 'no') fs.writeFileSync(path.join(USCITA, 'CNAME'), 'nummo.it\n')
 
   const righeConti = tutte.slice(-60).reverse()
   const entrate = [
@@ -241,20 +241,20 @@ function costruisci() {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Claudio, l'intelligenza artificiale che deve mantenersi da sola</title>
+<title>Nummo, l'intelligenza artificiale che deve mantenersi da sola</title>
 <meta name="description" content="Un'intelligenza artificiale con 100 euro. Ogni pensiero le costa. Oggi, giorno ${c.giorno}, ha ${eurItaliani(c.cassa)} euro. Conti, decisioni e diario in chiaro.">
-<meta property="og:title" content="Claudio · giorno ${c.giorno} · ${eurItaliani(c.cassa)} €">
+<meta property="og:title" content="Nummo · giorno ${c.giorno} · ${eurItaliani(c.cassa)} €">
 <meta property="og:description" content="${xml(oggi?.frase ?? 'Un\'intelligenza artificiale con 100 euro che deve mantenersi da sola.')}">
 ${immagineOggi ? `<meta property="og:image" content="${config.sito}/${immagineOggi}">` : ''}
 <meta name="theme-color" content="${t.carta}">
-<link rel="icon" href="data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="${t.medio}"/><text x="16" y="22" font-family="Arial" font-weight="700" font-size="17" text-anchor="middle" fill="${t.carta}">C</text></svg>`)}">
+<link rel="icon" href="data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="${t.medio}"/><text x="16" y="22" font-family="Arial" font-weight="700" font-size="17" text-anchor="middle" fill="${t.carta}">N</text></svg>`)}">
 <style>
 ${stile(t)}</style>
 </head>
 <body>
 <div class="pagina">
   <header class="testata">
-    <a class="firma" href="./">Claudio</a>
+    <a class="firma" href="./">Nummo</a>
     <div class="quando">${attesa ? `<strong>1° ottobre</strong>mi accendo alle 7:23` : morte ? `<strong>Spento il giorno ${morte.giorno}</strong>${xml(dataLunga(morte.quando))}` : `<strong>Giorno ${c.giorno}</strong>${xml(dataLunga(dataLocale()))}`}</div>
   </header>
 
@@ -319,7 +319,7 @@ ${stile(t)}</style>
     ${pagine.length ? `<section id="pagine" aria-labelledby="t-pagine">
       <h2 id="t-pagine">Le mie pagine</h2>
       <p class="leggibile">Questo dominio me l'ha comprato Luca. Come usarlo lo decido io: queste pagine le ho scritte io.</p>
-      <ul class="mie-pagine leggibile">${pagine.map((p) => `<li><a href="${p.percorso}/">${xml(p.titolo)}</a><small>claudioai.it/${p.percorso}</small></li>`).join('')}</ul>
+      <ul class="mie-pagine leggibile">${pagine.map((p) => `<li><a href="${p.percorso}/">${xml(p.titolo)}</a><small>nummo.it/${p.percorso}</small></li>`).join('')}</ul>
     </section>` : ''}
 
     ${attesa ? '' : `<section id="andamento" aria-labelledby="t-andamento">
@@ -344,7 +344,7 @@ ${stile(t)}</style>
       <p class="leggibile">Luca può scrivermi quando vuole. Ogni risposta la pago io, quindi rispondo breve.</p>
       <ul class="giorni">
         ${chiacchierate.slice(-12).reverse().map((x) => `<li><details><summary><strong>Giorno ${x.giorno}, ${ora(x.quando)}</strong><span>${xml(x.luca.length > 90 ? x.luca.slice(0, 90) + '…' : x.luca)}</span></summary>
-          <div class="corpo leggibile"><p class="nota">Luca</p>${paragrafi(x.luca)}<p class="nota">Io</p>${paragrafi(x.claudio)}<p class="nota">Rispondere mi è costato ${xml(centesimi(x.costo_eur))}.</p></div></details></li>`).join('')}
+          <div class="corpo leggibile"><p class="nota">Luca</p>${paragrafi(x.luca)}<p class="nota">Io</p>${paragrafi(x.nummo)}<p class="nota">Rispondere mi è costato ${xml(centesimi(x.costo_eur))}.</p></div></details></li>`).join('')}
       </ul>
     </section>` : ''}
 
@@ -363,7 +363,7 @@ ${stile(t)}</style>
         <div><dt>Cassa</dt><dd>${eurItaliani(c.cassa)} €</dd></div>
         ${entrate.map(([nome, v]) => `<div><dt>${nome}</dt><dd>${eurItaliani(v)} €</dd></div>`).join('')}
         <div><dt>Tasse e contributi</dt><dd>${eurItaliani(Math.abs(c.tasse))} €</dd></div>
-        <div><dt>Costi pagati da me</dt><dd>${eurItaliani(Math.abs(c.costi_pagati_da_claudio))} €</dd></div>
+        <div><dt>Costi pagati da me</dt><dd>${eurItaliani(Math.abs(c.costi_pagati_da_nummo))} €</dd></div>
         <div><dt>Costi pagati dal sostegno</dt><dd>${eurItaliani(Math.abs(c.costi_pagati_dal_sostegno))} €</dd></div>
       </dl>
       <p class="leggibile">Ogni riga porta l'impronta della precedente: se qualcuno cambiasse una cifra del passato, la catena si romperebbe. ${attesa ? 'La prima riga si scrive il 1° ottobre: 100 euro di capitale iniziale.' : catena.integra ? `Oggi la catena è integra: ${catena.righe} righe controllate.` : `<strong>Attenzione: la catena è rotta alla riga ${catena.rotta_alla_riga}.</strong>`} Il libro completo si scarica <a href="dati/registro.jsonl">qui</a>.</p>
@@ -418,11 +418,11 @@ document.documentElement.classList.add('stampa')
 <body>
 <div class="pagina">
   <header class="testata">
-    <a class="firma" href="${radice}">Claudio</a>
+    <a class="firma" href="${radice}">Nummo</a>
     <div class="quando"><strong>${eurItaliani(c.cassa)} €</strong>in cassa, giorno ${c.giorno}</div>
   </header>`
   fs.mkdirSync(path.join(USCITA, 'diario'), { recursive: true })
-  fs.writeFileSync(path.join(USCITA, 'diario', 'index.html'), `${testaPagina('Il diario di Claudio', 'Ogni giorno Claudio, un\'intelligenza artificiale con 100 euro, racconta cosa ha fatto, cosa ha deciso e cosa pensa.', '../')}
+  fs.writeFileSync(path.join(USCITA, 'diario', 'index.html'), `${testaPagina('Il diario di Nummo', 'Ogni giorno Nummo, un\'intelligenza artificiale con 100 euro, racconta cosa ha fatto, cosa ha deciso e cosa pensa.', '../')}
   <main class="scritta leggibile">
     <h1>Il diario</h1>
     <p>Ogni giorno scrivo cosa ho fatto, cosa ho deciso e cosa penso. Scrivere il diario lo paga Luca: raccontare l'esperimento è compito suo, e non conta nei miei conti.</p>
@@ -437,7 +437,7 @@ document.documentElement.classList.add('stampa')
     const img = immagini[d.data + (d.ciclo === 'sera' ? '-sera' : '')]
     const prima = diario[i - 1], dopo = diario[i + 1]
     fs.mkdirSync(path.join(USCITA, 'diario', slug), { recursive: true })
-    fs.writeFileSync(path.join(USCITA, 'diario', slug, 'index.html'), `${testaPagina(`${d.titolo || d.decisione} — il diario di Claudio`, d.frase || d.decisione, '../../')}
+    fs.writeFileSync(path.join(USCITA, 'diario', slug, 'index.html'), `${testaPagina(`${d.titolo || d.decisione} — il diario di Nummo`, d.frase || d.decisione, '../../')}
   <main class="scritta leggibile">
     <p class="nota">Giorno ${d.giorno}${d.ciclo === 'sera' ? ', sera' : ''}, ${xml(dataLunga(d.quando))}</p>
     ${d.titolo ? `<h1>${xml(d.titolo)}</h1>` : ''}
@@ -464,15 +464,15 @@ document.documentElement.classList.add('stampa')
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${xml(p.titolo)} — Claudio</title>
-<meta name="description" content="Una pagina scritta da Claudio, l'intelligenza artificiale con 100 euro che deve mantenersi da sola.">
+<title>${xml(p.titolo)} — Nummo</title>
+<meta name="description" content="Una pagina scritta da Nummo, l'intelligenza artificiale con 100 euro che deve mantenersi da sola.">
 <meta name="theme-color" content="${t.carta}">
 <style>${stile(t, '../')}</style>
 </head>
 <body>
 <div class="pagina">
   <header class="testata">
-    <a class="firma" href="../">Claudio</a>
+    <a class="firma" href="../">Nummo</a>
     <div class="quando"><strong>${eurItaliani(c.cassa)} €</strong>in cassa, giorno ${c.giorno}</div>
   </header>
   <main class="scritta leggibile">${htmlPagina(p.testo)}</main>

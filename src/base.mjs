@@ -6,7 +6,7 @@ import YAML from 'yaml'
 
 export const RADICE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 // In simulazione i dati stanno altrove, così il libro dei conti vero resta pulito.
-export const DATI = path.resolve(RADICE, process.env.CLAUDIO_DATI || 'dati')
+export const DATI = path.resolve(RADICE, process.env.NUMMO_DATI || 'dati')
 
 export const config = YAML.parse(fs.readFileSync(path.join(RADICE, 'config.yaml'), 'utf8'))
 export const costituzioneTesto = fs.readFileSync(path.join(RADICE, 'costituzione.yaml'), 'utf8')
@@ -34,8 +34,8 @@ export function scriviJson(nome, oggetto) {
   fs.writeFileSync(file(nome), JSON.stringify(oggetto, null, 2) + '\n')
 }
 
-// "Adesso" si può spostare con CLAUDIO_ADESSO per le simulazioni.
-export const adesso = () => (process.env.CLAUDIO_ADESSO ? new Date(process.env.CLAUDIO_ADESSO) : new Date())
+// "Adesso" si può spostare con NUMMO_ADESSO per le simulazioni.
+export const adesso = () => (process.env.NUMMO_ADESSO ? new Date(process.env.NUMMO_ADESSO) : new Date())
 
 // La data di calendario in Italia, AAAA-MM-GG.
 export const dataLocale = (d = adesso()) =>

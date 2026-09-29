@@ -1,6 +1,6 @@
-# Claudio AI
+# Nummo AI
 
-Un'intelligenza artificiale con 100 euro che deve mantenersi da sola. Le regole di Claudio in [costituzione.yaml](costituzione.yaml), i numeri in [config.yaml](config.yaml).
+Un'intelligenza artificiale con 100 euro che deve mantenersi da sola. Le regole di Nummo in [costituzione.yaml](costituzione.yaml), i numeri in [config.yaml](config.yaml).
 
 ## Com'è fatto
 
@@ -14,9 +14,9 @@ Un'intelligenza artificiale con 100 euro che deve mantenersi da sola. Le regole 
 | `src/banconota.mjs` | colori per taglio e disegno di sicurezza generato dall'impronta |
 | `src/immagine.mjs` | l'immagine quotidiana 1080×1350 |
 | `src/sito.mjs` | il sito pubblico, una pagina sola, dai dati |
-| `src/parla.mjs` | una chiacchierata con Luca fuori dai cicli: risponde, paga, finisce nel diario pubblico. Si usa con `strumenti/parla.sh` (skill `/claudioai`) |
-| `src/voce.mjs` | chi è Claudio e come scrive: la usano il ciclo e la chat |
-| `.github/workflows/claudio.yml` | la vita: 5:23 e 17:23 UTC, poi commit dei dati e pubblicazione del sito su GitHub Pages |
+| `src/parla.mjs` | una chiacchierata con Luca fuori dai cicli: risponde, paga, finisce nel diario pubblico. Si usa con `strumenti/parla.sh` (skill `/nummo`) |
+| `src/voce.mjs` | chi è Nummo e come scrive: la usano il ciclo e la chat |
+| `.github/workflows/nummo.yml` | la vita: 5:23 e 17:23 UTC, poi commit dei dati e pubblicazione del sito su GitHub Pages |
 
 I dati vivi stanno in `dati/` (libro dei conti, diario, memoria, richieste) e le immagini in `uscita/`. Si scrivono solo dal workflow.
 
@@ -29,12 +29,12 @@ node src/immagine.mjs 47.3    # prova dell'immagine con 47,30 € in cassa → p
 node strumenti/misura.mjs http://127.0.0.1:8844/ foto   # giro di misure a 390/768/1280/1680 (vedi strumenti/cdp.mjs)
 ```
 
-In simulazione `CLAUDIO_CERVELLO=finto` evita qualsiasi chiamata a pagamento. `CLAUDIO_ADESSO` sposta l'orologio, `CLAUDIO_DATI` / `CLAUDIO_USCITA` / `CLAUDIO_SITO` spostano le cartelle.
+In simulazione `NUMMO_CERVELLO=finto` evita qualsiasi chiamata a pagamento. `NUMMO_ADESSO` sposta l'orologio, `NUMMO_DATI` / `NUMMO_USCITA` / `NUMMO_SITO` spostano le cartelle.
 
 ## Fermarlo
 
 - Dal telefono: una issue chiamata `Stop`. Vale dal ciclo successivo e crea il file `FERMO`; cancellandolo riparte.
-- Subito: su GitHub, Actions → Claudio → «Disable workflow».
+- Subito: su GitHub, Actions → Nummo → «Disable workflow».
 
 ## Segreti
 

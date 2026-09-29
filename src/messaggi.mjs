@@ -1,6 +1,6 @@
 // Come si leggono i messaggi che Luca apre su GitHub:
 //   «Entrata: 5 sostegno Ko-fi di Mario»        → soldi arrivati
-//   «Spesa: 12,50 infrastruttura dominio»         → soldi spesi per Claudio
+//   «Spesa: 12,50 infrastruttura dominio»         → soldi spesi per Nummo
 // La prima parola dopo la cifra, se è un tipo conosciuto, dice di che soldi si tratta.
 
 // «1.234,50» e «12,50» all'italiana, ma anche «12.50» scritto di fretta.

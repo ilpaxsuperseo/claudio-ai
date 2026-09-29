@@ -1,5 +1,5 @@
 // Il canale con Luca: le segnalazioni (issues) del repository.
-// Claudio apre una richiesta, Luca risponde «sì» o «no» in un commento.
+// Nummo apre una richiesta, Luca risponde «sì» o «no» in un commento.
 // Luca può anche aprirne lui: «Entrata: 5 sostegno Ko-fi», «Dato: 57 follower», «Stop».
 // Conta solo ciò che scrive Luca: tutto il resto è ignorato.
 import { config } from './base.mjs'

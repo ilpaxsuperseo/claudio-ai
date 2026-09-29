@@ -1,4 +1,4 @@
-// Le pagine che Claudio scrive su claudioai.it: il dominio è suo, come usarlo lo decide lui.
+// Le pagine che Nummo scrive su nummo.it: il dominio è suo, come usarlo lo decide lui.
 // Le scrive in Markdown; il sito le mostra senza HTML grezzo e senza link pericolosi.
 import fs from 'node:fs'
 import path from 'node:path'
@@ -6,7 +6,7 @@ import { Marked } from 'marked'
 import { RADICE, adesso } from './base.mjs'
 import { xml } from './banconota.mjs'
 
-export const PAGINE = path.join(RADICE, process.env.CLAUDIO_PAGINE || 'pagine')
+export const PAGINE = path.join(RADICE, process.env.NUMMO_PAGINE || 'pagine')
 const RISERVATI = new Set(['dati', 'giorni', 'caratteri', 'pagine', 'diario', 'index', 'sito', 'api', 'admin', 'assets'])
 const MAX_PAGINE = 20
 const MAX_CARATTERI = 12000

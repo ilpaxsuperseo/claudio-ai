@@ -6,9 +6,9 @@ import os from 'node:os'
 import path from 'node:path'
 
 // Ogni esecuzione lavora in una cartella temporanea: il libro dei conti vero non si tocca.
-const cartella = fs.mkdtempSync(path.join(os.tmpdir(), 'claudio-prove-'))
-process.env.CLAUDIO_DATI = cartella
-process.env.CLAUDIO_ADESSO = '2026-10-05T07:23:00Z'
+const cartella = fs.mkdtempSync(path.join(os.tmpdir(), 'nummo-prove-'))
+process.env.NUMMO_DATI = cartella
+process.env.NUMMO_ADESSO = '2026-10-05T07:23:00Z'
 
 const { registra, registraCosto, conti, verificaCatena, voci, stato, puoPagare, giaRegistrato, sostegnoResiduo, traguardo } = await import('../src/registro.mjs')
 const { scriviPagina } = await import('../src/pagine.mjs')
@@ -21,21 +21,21 @@ test('il capitale iniziale entra in cassa', () => {
   assert.equal(conti().cassa, 100)
 })
 
-test('durante il sostegno il respiro lo paga Luca, il resto Claudio', () => {
+test('durante il sostegno il respiro lo paga Luca, il resto Nummo', () => {
   const [respiro] = registraCosto({ categoria: 'respiro', importo_eur: 0.005, descrizione: 'respiro' })
   assert.equal(respiro.pagato_da, 'sostegno_vitale')
   assert.equal(conti().cassa, 100)
   const [pensiero] = registraCosto({ categoria: 'cervello', importo_eur: 0.04, descrizione: 'pensa meglio' })
-  assert.equal(pensiero.pagato_da, 'claudio')
+  assert.equal(pensiero.pagato_da, 'nummo')
   assert.equal(conti().cassa, 99.96)
 })
 
-test('il tetto mensile del sostegno: la parte che sfora la paga Claudio', () => {
+test('il tetto mensile del sostegno: la parte che sfora la paga Nummo', () => {
   const prima = conti().cassa
   const scritte = registraCosto({ categoria: 'infrastruttura', importo_eur: 100.5, descrizione: 'oltre il tetto' })
   assert.equal(scritte.length, 2)
   assert.equal(scritte[0].pagato_da, 'sostegno_vitale')
-  assert.equal(scritte[1].pagato_da, 'claudio')
+  assert.equal(scritte[1].pagato_da, 'nummo')
   assert.ok(Math.abs(conti().cassa - (prima - 0.505)) < 1e-9)
 })
 
@@ -81,7 +81,7 @@ test('niente scoperti per arrotondamento (Codex, punto 12)', () => {
 
 test('un costo già sostenuto si registra anche se sfora', () => {
   const [v] = registraCosto({ categoria: 'cervello', importo_eur: 0.000001, descrizione: 'minimo', rif: 'prova sostenuto', giaSostenuto: true })
-  assert.equal(v.pagato_da, 'claudio')
+  assert.equal(v.pagato_da, 'nummo')
   assert.equal(giaRegistrato('prova sostenuto'), true)
   assert.equal(giaRegistrato('mai vista'), false)
 })
@@ -118,8 +118,8 @@ test('il traguardo: netto del mese, scala e budget per gli strumenti', () => {
   assert.equal(dopo.budget_strumenti, 3.8) // metà di 10 − 2,40
 })
 
-test('le pagine di Claudio: indirizzi validi, riservati e cancellazione', () => {
-  process.env.CLAUDIO_PAGINE = cartella
+test('le pagine di Nummo: indirizzi validi, riservati e cancellazione', () => {
+  process.env.NUMMO_PAGINE = cartella
   assert.match(scriviPagina('Chi Sono', 'x'), /non è un indirizzo valido/)
   assert.match(scriviPagina('diario', 'x'), /riservato/)
 })
@@ -134,7 +134,7 @@ test('i messaggi di Luca si leggono giusti', () => {
   assert.deepEqual(leggiEntrata('Entrata: 5 sostegno Ko-fi di Mario'), { importo: 5, tipo: 'sostegno_pubblico', descrizione: 'Ko-fi di Mario' })
   assert.deepEqual(leggiEntrata('entrata 12,50 € vendita guida PDF'), { importo: 12.5, tipo: 'guadagno', descrizione: 'guida PDF' })
   assert.deepEqual(leggiEntrata('Entrata: 3 Ko-fi'), { importo: 3, tipo: 'sostegno_pubblico', descrizione: 'Ko-fi' })
-  assert.deepEqual(leggiSpesa('Spesa: 12,20 infrastruttura dominio claudioai.it'), { importo: 12.2, categoria: 'infrastruttura', descrizione: 'dominio claudioai.it' })
+  assert.deepEqual(leggiSpesa('Spesa: 12,20 infrastruttura dominio nummo.it'), { importo: 12.2, categoria: 'infrastruttura', descrizione: 'dominio nummo.it' })
   assert.deepEqual(leggiSpesa('Spesa 4.99 abbonamento'), { importo: 4.99, categoria: 'servizi', descrizione: 'abbonamento' })
   assert.equal(leggiEntrata('Dato: 57 follower'), null)
   assert.equal(leggiImporto('1.234,50'), 1234.5)

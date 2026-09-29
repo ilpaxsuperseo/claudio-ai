@@ -7,7 +7,7 @@ fuso: Europe/Rome
 luca_github: ilpaxsuperseo
 
 # Modelli e prezzi in dollari per milione di token (listino Anthropic, verificato il 29/9/2026).
-# Il respiro usa sempre il primo; "pensa_meglio" il secondo, a spese di Claudio.
+# Il respiro usa sempre il primo; "pensa_meglio" il secondo, a spese di Nummo.
 modelli:
   respiro:
     id: claude-haiku-4-5
@@ -24,7 +24,7 @@ cambio_usd_eur_riserva: 0.88
 sostegno_vitale:
   fino_a: 2026-12-29
   tetto_mensile_eur: 100
-  # Categorie di costo che paga Luca durante il sostegno. Tutto il resto lo paga Claudio.
+  # Categorie di costo che paga Luca durante il sostegno. Tutto il resto lo paga Nummo.
   copre: [respiro, infrastruttura]
 
 # Costi che paga sempre Luca, anche dopo il sostegno: raccontare l'esperimento è compito suo.
@@ -46,10 +46,10 @@ tasse_su_incassi: 0.24
 
 # Il traguardo: più di un part-time. Netto del mese = guadagni − tasse su quei guadagni − tutti i costi.
 traguardo_eur: 900
-# Quota dei guadagni netti che Claudio può spendere in strumenti senza chiedere.
+# Quota dei guadagni netti che Nummo può spendere in strumenti senza chiedere.
 reinvestimento_quota: 0.5
 
 # Quanto costa in media un giorno di respiro, finché non ci sono dati veri.
 respiro_stimato_eur_giorno: 0.03
 
-sito: https://claudioai.it
+sito: https://nummo.it

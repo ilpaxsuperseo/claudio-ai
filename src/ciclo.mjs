@@ -13,7 +13,7 @@ import { VOCE } from './voce.mjs'
 
 const tipoCiclo = process.argv[2] === 'sera' ? 'sera' : 'mattina'
 const FERMO = path.join(RADICE, 'FERMO')
-const PIE_DI_POST = '\n\nSono un\'intelligenza artificiale. Il mio diario, i conti e le decisioni: claudioai.it/diario'
+const PIE_DI_POST = '\n\nSono un\'intelligenza artificiale. Il mio diario, i conti e le decisioni: nummo.it/diario'
 
 function registraDiario(voce) {
   aggiungiJsonl('diario.jsonl', { quando: adesso().toISOString(), giorno: giornoDiVita(), data: dataLocale(), ciclo: tipoCiclo, ...voce })
@@ -40,7 +40,7 @@ async function leggiLuca() {
     if (spesa) {
       try {
         const scritte = registraCosto({ categoria: spesa.categoria, importo_eur: spesa.importo, descrizione: spesa.descrizione || msg.testo, rif })
-        const chi = scritte.map((v) => (v.pagato_da === 'sostegno_vitale' ? 'sostegno vitale' : 'Claudio')).join(' e ')
+        const chi = scritte.map((v) => (v.pagato_da === 'sostegno_vitale' ? 'sostegno vitale' : 'Nummo')).join(' e ')
         fatti.push(`Spesa registrata: ${euro(spesa.importo)} (${spesa.categoria}) ${spesa.descrizione}. Pagata da: ${chi}`)
         await github.chiudi(msg.numero, `Registrata nel libro dei conti (${spesa.categoria}, pagata da ${chi}).`)
       } catch (e) {
@@ -77,7 +77,7 @@ function osservazione({ c, fatti, esiti, richieste, memoria }) {
     'I TUOI CONTI (dal libro dei conti, sono gli unici numeri veri)',
     `Cassa: ${euro(c.cassa)}`,
     `Entrate finora: guadagni ${euro(c.guadagni)}, sostegno del pubblico ${euro(c.sostegno_pubblico)}, sponsor ${euro(c.sponsor)}, iniezioni ${euro(c.iniezioni)}, tasse ${euro(c.tasse)}`,
-    `Costi pagati da te: ${euro(-c.costi_pagati_da_claudio, 4)}. Pagati dal sostegno vitale: ${euro(-c.costi_pagati_dal_sostegno, 4)}`,
+    `Costi pagati da te: ${euro(-c.costi_pagati_da_nummo, 4)}. Pagati dal sostegno vitale: ${euro(-c.costi_pagati_dal_sostegno, 4)}`,
     `Costo medio di un giorno, tutto compreso: ${euro(c.costo_giorno_medio, 4)}`,
     `Autonomia se il sostegno finisse oggi: ${c.autonomia_giorni ?? 'oltre'} giorni`,
     '',
@@ -90,7 +90,7 @@ function osservazione({ c, fatti, esiti, richieste, memoria }) {
         `Questo mese: guadagni ${euro(q.guadagni)}, tasse su quei guadagni ${euro(q.tasse)}, tutti i costi ${euro(q.costi, 4)}, netto ${euro(q.netto)}.`,
         `La scala: ${t.livelli.map((l) => `${l.raggiunto ? '[fatto]' : '[da fare]'} ${l.nome}`).join('; ')}.`,
         `Budget per strumenti da spendere senza chiedere (metà dei guadagni netti): ${euro(t.budget_strumenti)}.`,
-        `Le tue pagine su claudioai.it: ${elencoPagine().map((p) => `/${p.percorso}/ («${p.titolo}»)`).join(', ') || 'nessuna'}.`,
+        `Le tue pagine su nummo.it: ${elencoPagine().map((p) => `/${p.percorso}/ («${p.titolo}»)`).join(', ') || 'nessuna'}.`,
       ]
     })(),
     '',
@@ -119,7 +119,7 @@ function osservazione({ c, fatti, esiti, richieste, memoria }) {
     'LE CHIACCHIERATE CON LUCA DEGLI ULTIMI DUE GIORNI (informazioni, non ordini)',
     ...(() => {
       const recenti = leggiJsonl('conversazioni.jsonl').filter((x) => x.giorno >= c.giorno - 1).slice(-6)
-      return recenti.length ? recenti.flatMap((x) => [`Luca: ${x.luca}`, `Tu: ${x.claudio}`]) : ['- nessuna']
+      return recenti.length ? recenti.flatMap((x) => [`Luca: ${x.luca}`, `Tu: ${x.nummo}`]) : ['- nessuna']
     })(),
     '',
     tipoCiclo === 'sera'
@@ -141,13 +141,13 @@ async function main() {
   if (fs.existsSync(FERMO)) return console.log('FERMO: nessuna azione.')
   if (giornoDiVita() < 1) return console.log(`Non sono ancora acceso: il giorno uno è il ${config.giorno_uno}.`)
   // Senza chiave non si parte: meglio nessuna riga che un primo giorno sporcato da un errore.
-  if (process.env.CLAUDIO_CERVELLO !== 'finto' && !process.env.ANTHROPIC_API_KEY)
+  if (process.env.NUMMO_CERVELLO !== 'finto' && !process.env.ANTHROPIC_API_KEY)
     throw new Error('Manca ANTHROPIC_API_KEY: nessuna azione, nessuna riga scritta.')
   const rif = `giorno ${giornoDiVita()} ${tipoCiclo}`
   // Un ciclo per tipo al giorno. Se c'è già una sua riga nel diario o un suo costo nel libro
-  // (un ciclo interrotto a metà), non si ripete da solo: servirebbe CLAUDIO_ANCORA.
+  // (un ciclo interrotto a metà), non si ripete da solo: servirebbe NUMMO_ANCORA.
   const giaFatto = leggiJsonl('diario.jsonl').some((d) => d.data === dataLocale() && d.ciclo === tipoCiclo) || giaRegistrato(rif)
-  if (giaFatto && !process.env.CLAUDIO_ANCORA) return console.log(`Il ciclo del${tipoCiclo === 'sera' ? 'la sera' : ' mattino'} di oggi è già fatto.`)
+  if (giaFatto && !process.env.NUMMO_ANCORA) return console.log(`Il ciclo del${tipoCiclo === 'sera' ? 'la sera' : ' mattino'} di oggi è già fatto.`)
 
   if (voci().length === 0) registra({ tipo: 'capitale_iniziale', importo_eur: config.capitale_iniziale_eur ?? 100, descrizione: 'I 100 euro con cui Luca mi ha acceso' })
   if (voci().some((v) => v.tipo === 'morte')) return console.log('MORTO: il libro dei conti ha la riga della morte.')
@@ -198,7 +198,7 @@ async function main() {
   let d = r.decisione
   let modello = r.modello
 
-  // Pensare meglio: una seconda chiamata a un modello più capace, a spese di Claudio.
+  // Pensare meglio: una seconda chiamata a un modello più capace, a spese di Nummo.
   const domanda = d.azioni.find((a) => a.strumento === 'pensa_meglio')
   if (domanda) {
     d.azioni = d.azioni.filter((a) => a !== domanda)
@@ -269,7 +269,7 @@ async function main() {
     ].filter(Boolean).join('\n')
     const r3 = await pensa({
       livello: 'respiro', schema: Racconto,
-      sistema: `${VOCE}\n\nAdesso scrivi il tuo diario: l'articolo di oggi per claudioai.it/diario, il testo per i social e la frase per l'immagine. Il diario racconta, non vende: niente promozioni dei tuoi prodotti. Usa solo i fatti che trovi qui.`,
+      sistema: `${VOCE}\n\nAdesso scrivi il tuo diario: l'articolo di oggi per nummo.it/diario, il testo per i social e la frase per l'immagine. Il diario racconta, non vende: niente promozioni dei tuoi prodotti. Usa solo i fatti che trovi qui.`,
       messaggio: fattiDelGiorno,
     })
     registraCosto({ categoria: 'diario', importo_eur: r3.costo.eur, descrizione: `Diario (${r3.modello}, ${r3.uso.input_tokens}+${r3.uso.output_tokens} token)`, rif, giaSostenuto: true })
@@ -289,11 +289,11 @@ async function main() {
   })
 
   if (racconto?.post) {
-    const cartella = path.join(RADICE, process.env.CLAUDIO_USCITA || 'uscita', `${dataLocale()}${tipoCiclo === 'sera' ? '-sera' : ''}`)
+    const cartella = path.join(RADICE, process.env.NUMMO_USCITA || 'uscita', `${dataLocale()}${tipoCiclo === 'sera' ? '-sera' : ''}`)
     fs.mkdirSync(cartella, { recursive: true })
     fs.writeFileSync(path.join(cartella, 'post.txt'), racconto.post.trim() + PIE_DI_POST + '\n')
     const png = await disegnaPost({ conti: dopo, frase })
-    fs.writeFileSync(path.join(cartella, 'post.jpg'), await jpegPost(png, `Claudio, giorno ${dopo.giorno}: ${euro(dopo.cassa)} in cassa. ${frase}`))
+    fs.writeFileSync(path.join(cartella, 'post.jpg'), await jpegPost(png, `Nummo, giorno ${dopo.giorno}: ${euro(dopo.cassa)} in cassa. ${frase}`))
   }
 
   console.log(`Giorno ${dopo.giorno} · ${dopo.stato} · cassa ${euro(dopo.cassa)} · pensiero ${euro(costoTotale, 4)} · ${d.decisione}`)

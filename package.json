@@ -1,5 +1,5 @@
 {
-  "name": "claudio-ai",
+  "name": "nummo",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "Claudio AI: un'intelligenza artificiale con 100 euro che deve mantenersi da sola",
+  "description": "Nummo AI: un'intelligenza artificiale con 100 euro che deve mantenersi da sola",
   "type": "module",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.129.0",

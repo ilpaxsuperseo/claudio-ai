@@ -1,5 +1,5 @@
 // Una chiacchierata con Luca, fuori dai cicli: node src/parla.mjs "messaggio"
-// Senza messaggio dice come sta. Ogni risposta la paga Claudio e finisce nel suo diario pubblico.
+// Senza messaggio dice come sta. Ogni risposta la paga Nummo e finisce nel suo diario pubblico.
 import fs from 'node:fs'
 import path from 'node:path'
 import { RADICE, leggiJsonl, aggiungiJsonl, leggiJson, scriviJson, adesso, dataLocale, giornoDiVita, euro, arrotonda, config } from './base.mjs'
@@ -11,7 +11,7 @@ import { NOMI_STATO, durata, centesimi } from './banconota.mjs'
 const testo = process.argv.slice(2).join(' ').trim()
 
 function comeSta() {
-  if (giornoDiVita() < 1) return `Claudio si accende il ${config.giorno_uno.split('-').reverse().join('/')} alle 7:23. Fino ad allora il libro dei conti è vuoto.`
+  if (giornoDiVita() < 1) return `Nummo si accende il ${config.giorno_uno.split('-').reverse().join('/')} alle 7:23. Fino ad allora il libro dei conti è vuoto.`
   const c = conti()
   const ultima = leggiJsonl('diario.jsonl').filter((d) => d.decisione).at(-1)
   const attesa = leggiJson('richieste.json', []).filter((r) => r.stato === 'in_attesa')
@@ -34,9 +34,9 @@ Adesso Luca ti scrive in chat. Rispondi a lui, dandogli del tu.
 async function main() {
   if (!testo) return console.log(comeSta())
   if (giornoDiVita() < 1) return console.log(comeSta())
-  if (fs.existsSync(path.join(RADICE, 'FERMO'))) return console.log('Claudio è fermo (c\'è il file FERMO): non risponde.')
-  if (voci().some((v) => v.tipo === 'morte')) return console.log('Claudio è morto: il libro dei conti ha la riga della morte. Non risponde più.')
-  if (process.env.CLAUDIO_CERVELLO !== 'finto' && !process.env.ANTHROPIC_API_KEY)
+  if (fs.existsSync(path.join(RADICE, 'FERMO'))) return console.log('Nummo è fermo (c\'è il file FERMO): non risponde.')
+  if (voci().some((v) => v.tipo === 'morte')) return console.log('Nummo è morto: il libro dei conti ha la riga della morte. Non risponde più.')
+  if (process.env.NUMMO_CERVELLO !== 'finto' && !process.env.ANTHROPIC_API_KEY)
     throw new Error('Manca ANTHROPIC_API_KEY (nel file .env della cartella del progetto).')
 
   const c = conti()
@@ -51,14 +51,14 @@ async function main() {
     `Strategia: ${memoria.strategia || 'ancora nessuna'}`,
     '',
     'LE ULTIME CHIACCHIERATE CON LUCA',
-    ...(chiacchierate.length ? chiacchierate.flatMap((x) => [`Luca: ${x.luca}`, `Tu: ${x.claudio}`]) : ['- nessuna: è la prima']),
+    ...(chiacchierate.length ? chiacchierate.flatMap((x) => [`Luca: ${x.luca}`, `Tu: ${x.nummo}`]) : ['- nessuna: è la prima']),
     '',
     `LUCA TI SCRIVE ADESSO: ${testo}`,
   ].join('\n')
 
   const massimo = await costoMassimo('respiro', SISTEMA + messaggio)
   if (!puoPagare('conversazione', massimo))
-    return console.log(`Claudio non ha abbastanza soldi per risponderti: servono fino a ${euro(massimo, 4)}, in cassa ne ha ${euro(c.cassa, 4)}.`)
+    return console.log(`Nummo non ha abbastanza soldi per risponderti: servono fino a ${euro(massimo, 4)}, in cassa ne ha ${euro(c.cassa, 4)}.`)
 
   const rif = `conversazione ${adesso().toISOString()}`
   let r
@@ -69,12 +69,12 @@ async function main() {
     throw e
   }
   registraCosto({ categoria: 'conversazione', importo_eur: r.costo.eur, descrizione: `Chiacchierata con Luca (${r.modello}, ${r.uso.input_tokens}+${r.uso.output_tokens} token)`, rif, giaSostenuto: true })
-  aggiungiJsonl('conversazioni.jsonl', { quando: adesso().toISOString(), giorno: c.giorno, data: dataLocale(), luca: testo, claudio: r.decisione.risposta, costo_eur: arrotonda(r.costo.eur, 6), modello: r.modello })
+  aggiungiJsonl('conversazioni.jsonl', { quando: adesso().toISOString(), giorno: c.giorno, data: dataLocale(), luca: testo, nummo: r.decisione.risposta, costo_eur: arrotonda(r.costo.eur, 6), modello: r.modello })
   if (r.decisione.da_ricordare.trim()) {
     memoria.appunti = [...(memoria.appunti ?? []), `Giorno ${c.giorno}, da una chiacchierata con Luca: ${r.decisione.da_ricordare.trim()}`].slice(-20)
     scriviJson('memoria.json', memoria)
   }
-  console.log(`Claudio: ${r.decisione.risposta}\n\n(Questa risposta gli è costata ${centesimi(r.costo.eur)}. In cassa gli restano ${euro(conti().cassa)}.)`)
+  console.log(`Nummo: ${r.decisione.risposta}\n\n(Questa risposta gli è costata ${centesimi(r.costo.eur)}. In cassa gli restano ${euro(conti().cassa)}.)`)
 }
 
 main().catch((e) => {
