@@ -12,6 +12,7 @@ process.env.NUMMO_ADESSO = '2026-10-05T07:23:00Z'
 
 const { registra, registraCosto, conti, verificaCatena, voci, stato, puoPagare, giaRegistrato, sostegnoResiduo, traguardo } = await import('../src/registro.mjs')
 const { scriviPagina } = await import('../src/pagine.mjs')
+const sveglia = await import('../src/sveglia.mjs')
 const { esitoDi } = await import('../src/github.mjs')
 const { leggiEntrata, leggiSpesa, leggiImporto } = await import('../src/messaggi.mjs')
 const { taglio, durata } = await import('../src/banconota.mjs')
@@ -122,6 +123,18 @@ test('le pagine di Nummo: indirizzi validi, riservati e cancellazione', () => {
   process.env.NUMMO_PAGINE = cartella
   assert.match(scriviPagina('Chi Sono', 'x'), /non è un indirizzo valido/)
   assert.match(scriviPagina('diario', 'x'), /riservato/)
+})
+
+test('la sveglia: ora italiana, cambio d\'ora, limiti', () => {
+  assert.equal(sveglia.daLocale('2026-10-02', '03:30').toISOString(), '2026-10-02T01:30:00.000Z') // ora legale
+  assert.equal(sveglia.daLocale('2026-10-26', '03:30').toISOString(), '2026-10-26T02:30:00.000Z') // ora solare
+  const mezzogiorno = new Date('2026-10-01T10:00:00Z') // le 12:00 in Italia
+  assert.equal(sveglia.interpreta('15:00 per controllare', mezzogiorno).prossima.toISOString(), '2026-10-01T13:00:00.000Z')
+  assert.equal(sveglia.interpreta('11:00', mezzogiorno).prossima.toISOString(), '2026-10-02T09:00:00.000Z') // già passata: domani
+  assert.equal(sveglia.interpreta('domani alle 03.30', mezzogiorno).prossima.toISOString(), '2026-10-02T01:30:00.000Z')
+  assert.match(sveglia.interpreta('12:30', mezzogiorno).errore, /troppo presto/)
+  assert.match(sveglia.interpreta('2026-10-05 10:00', mezzogiorno).errore, /troppo lontano/)
+  assert.match(sveglia.interpreta('quando mi pare', mezzogiorno).errore, /non capisco/)
 })
 
 test('la morte è una riga del libro, e da lì in poi resta', () => {

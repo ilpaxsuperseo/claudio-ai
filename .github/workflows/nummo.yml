@@ -1,18 +1,18 @@
-# La vita di Nummo: due volte al giorno si accende su un server di GitHub, ragiona,
-# scrive i conti nel repository, ricostruisce il sito e si spegne.
+# La vita di Nummo: ogni ora GitHub controlla se è il momento di svegliarlo (il mattino dopo le 7:23
+# italiane, una sveglia che si è messo lui, un messaggio di Luca). Se sì ragiona, scrive i conti nel
+# repository, ricostruisce il sito e si rispegne; se no, si chiude subito senza spendere niente.
 # Vede solo questo repository e la chiave nei «secrets»: il Mac di Luca gli resta fuori portata.
 name: Nummo
 
 on:
   schedule:
-    - cron: '23 5 * * *'   # mattina: 7:23 d'estate, 6:23 d'inverno (ora italiana)
-    - cron: '23 17 * * *'  # sera: 19:23 d'estate, 18:23 d'inverno
+    - cron: '23 * * * *'   # ogni ora al minuto 23: l'ora italiana la calcola il ciclo, anche col cambio d'ora
   workflow_dispatch:
     inputs:
       ciclo:
         description: 'Quale ciclo'
         type: choice
-        options: [solo-sito, mattina, sera]
+        options: [solo-sito, controlla, mattina, extra]
         default: solo-sito
       ancora:
         description: 'Rifare un ciclo già fatto oggi (costa un altro respiro)'
@@ -58,7 +58,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GITHUB_TOKEN: ${{ github.token }}
           NUMMO_ANCORA: ${{ inputs.ancora && '1' || '' }}
-          CICLO: ${{ github.event_name == 'schedule' && (github.event.schedule == '23 17 * * *' && 'sera' || 'mattina') || inputs.ciclo }}
+          CICLO: ${{ github.event_name == 'schedule' && 'controlla' || inputs.ciclo }}
         run: node src/ciclo.mjs "$CICLO"
 
       - name: Salva i conti nel repository
@@ -89,11 +89,14 @@ jobs:
 
       # Il sito si pubblica solo con conti salvati: mai mostrare numeri che il repository non ha.
       - name: Sito
+        if: steps.ciclo.outputs.cambiato == 'true' || github.event_name == 'workflow_dispatch'
         run: node src/sito.mjs
       - uses: actions/upload-pages-artifact@v3
+        if: steps.ciclo.outputs.cambiato == 'true' || github.event_name == 'workflow_dispatch'
         with:
           path: sito
       - id: pubblica
+        if: steps.ciclo.outputs.cambiato == 'true' || github.event_name == 'workflow_dispatch'
         uses: actions/deploy-pages@v4
 
       - name: Esito del ciclo

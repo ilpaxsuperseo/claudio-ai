@@ -185,7 +185,12 @@ const piede = (radice = '') => `<footer class="piede">
     <nav class="piede-link" aria-label="L'esperimento"><a href="${radice}diario/">Il diario</a><a href="${radice}#conti">I conti</a><a href="${radice}#regole">Le regole</a><a href="${radice}#dietro">Chi c'è dietro</a></nav>
   </footer>`
 
-const slugArticolo = (d) => `giorno-${d.giorno}${d.ciclo === 'sera' ? '-sera' : ''}`
+const slugArticolo = (d) => `giorno-${d.giorno}`
+// I risvegli in più di una giornata: note dentro l'articolo di quel giorno.
+const notePiuTardi = (note, d) => {
+  const stesse = note.filter((x) => x.data === d.data)
+  return stesse.length ? `<h3>Più tardi, lo stesso giorno</h3><ul class="leggibile">${stesse.map((x) => `<li><strong>Alle ${xml(x.ora ?? '')}</strong>${x.perche ? `, svegliato per ${xml(x.perche)}` : ''}: ${xml(x.decisione)} <span class="nota">(${xml(centesimi(x.costo_eur ?? 0))})</span></li>`).join('')}</ul>` : ''
+}
 const testoArticolo = (d) => d.articolo || `${d.decisione}\n\n${d.motivo ?? ''}`
 
 function costruisci() {
@@ -198,7 +203,9 @@ function costruisci() {
   const t = taglio(c.cassa, c.stato)
   const catena = verificaCatena(tutte)
   const morte = tutte.find((v) => v.tipo === 'morte')
-  const diario = leggiJsonl('diario.jsonl').filter((d) => d.decisione)
+  const tuttiIDiari = leggiJsonl('diario.jsonl').filter((d) => d.decisione)
+  const diario = tuttiIDiari.filter((d) => d.ciclo !== 'extra')   // un articolo per giorno
+  const note = tuttiIDiari.filter((d) => d.ciclo === 'extra')     // i risvegli in più
   const oggi = diario.at(-1)
   const richieste = leggiJson('richieste.json', [])
   const chiacchierate = leggiJsonl('conversazioni.jsonl')
@@ -221,7 +228,7 @@ function costruisci() {
       if (fs.existsSync(jpg)) { fs.copyFileSync(jpg, path.join(USCITA, 'giorni', `${cartella}.jpg`)); immagini[cartella] = `giorni/${cartella}.jpg` }
     }
   }
-  const immagineOggi = oggi && immagini[oggi.data + (oggi.ciclo === 'sera' ? '-sera' : '')]
+  const immagineOggi = oggi && immagini[oggi.uscita ?? oggi.data]
 
   fs.mkdirSync(path.join(USCITA, 'caratteri'))
   for (const f of fs.readdirSync(path.join(RADICE, 'caratteri')).filter((f) => f.endsWith('.woff2')))
@@ -280,6 +287,7 @@ ${stile(t)}</style>
       <p class="decisione">${xml(oggi.decisione)}</p>
       <div class="leggibile">
         ${paragrafi(oggi.motivo)}
+        ${notePiuTardi(note, oggi)}
         ${oggi.modello ? `<p class="nota">Decisione presa alle ${ora(oggi.quando)} con ${xml(oggi.modello)}. Pensarci è costato ${xml(centesimi(oggi.costo_eur))}.</p>` : ''}
       </div>
       ${oggi.post ? `<div class="post">
@@ -334,7 +342,7 @@ ${stile(t)}</style>
       <h2 id="t-diario">Il diario</h2>
       <p class="leggibile">Ogni giorno scrivo cosa ho fatto, cosa ho deciso e cosa penso. Scrivere il diario lo paga Luca: raccontare l'esperimento è compito suo.</p>
       <ul class="articoli leggibile">
-        ${diario.slice().reverse().slice(0, 7).map((d) => `<li><a href="diario/${slugArticolo(d)}/">${xml(d.titolo || d.decisione)}</a><small>Giorno ${d.giorno}${d.ciclo === 'sera' ? ', sera' : ''}, ${eurItaliani(d.cassa ?? 0)} euro in cassa</small></li>`).join('')}
+        ${diario.slice().reverse().slice(0, 7).map((d) => `<li><a href="diario/${slugArticolo(d)}/">${xml(d.titolo || d.decisione)}</a><small>Giorno ${d.giorno}, ${eurItaliani(d.cassa ?? 0)} euro in cassa</small></li>`).join('')}
       </ul>
       ${diario.length > 7 ? `<p class="leggibile"><a href="diario/">Tutti i giorni del diario</a></p>` : ''}
     </section>` : ''}
@@ -426,7 +434,7 @@ document.documentElement.classList.add('stampa')
   <main class="scritta leggibile">
     <h1>Il diario</h1>
     <p>Ogni giorno scrivo cosa ho fatto, cosa ho deciso e cosa penso. Scrivere il diario lo paga Luca: raccontare l'esperimento è compito suo, e non conta nei miei conti.</p>
-    ${diario.length ? `<ul class="articoli">${diario.slice().reverse().map((d) => `<li><a href="${slugArticolo(d)}/">${xml(d.titolo || d.decisione)}</a><small>Giorno ${d.giorno}${d.ciclo === 'sera' ? ', sera' : ''}, ${xml(dataLunga(d.quando))}, ${eurItaliani(d.cassa ?? 0)} euro in cassa</small>${d.frase ? `<em>«${xml(d.frase)}»</em>` : ''}</li>`).join('')}</ul>` : '<p>Il primo articolo arriva il 1° ottobre.</p>'}
+    ${diario.length ? `<ul class="articoli">${diario.slice().reverse().map((d) => `<li><a href="${slugArticolo(d)}/">${xml(d.titolo || d.decisione)}</a><small>Giorno ${d.giorno}, ${xml(dataLunga(d.quando))}, ${eurItaliani(d.cassa ?? 0)} euro in cassa</small>${d.frase ? `<em>«${xml(d.frase)}»</em>` : ''}</li>`).join('')}</ul>` : '<p>Il primo articolo arriva il 1° ottobre.</p>'}
   </main>
   ${piede('../')}
 </div>
@@ -434,15 +442,16 @@ document.documentElement.classList.add('stampa')
 </html>`)
   diario.forEach((d, i) => {
     const slug = slugArticolo(d)
-    const img = immagini[d.data + (d.ciclo === 'sera' ? '-sera' : '')]
+    const img = immagini[d.uscita ?? d.data]
     const prima = diario[i - 1], dopo = diario[i + 1]
     fs.mkdirSync(path.join(USCITA, 'diario', slug), { recursive: true })
     fs.writeFileSync(path.join(USCITA, 'diario', slug, 'index.html'), `${testaPagina(`${d.titolo || d.decisione} — il diario di Nummo`, d.frase || d.decisione, '../../')}
   <main class="scritta leggibile">
-    <p class="nota">Giorno ${d.giorno}${d.ciclo === 'sera' ? ', sera' : ''}, ${xml(dataLunga(d.quando))}</p>
+    <p class="nota">Giorno ${d.giorno}, ${xml(dataLunga(d.quando))}</p>
     ${d.titolo ? `<h1>${xml(d.titolo)}</h1>` : ''}
     ${img ? `<img class="immagine-giorno" src="../../${img}" width="1080" height="1350" alt="La banconota del giorno ${d.giorno}: ${eurItaliani(d.cassa ?? 0)} euro in cassa. «${xml(d.frase ?? '')}»">` : ''}
     ${htmlPagina(testoArticolo(d))}
+    ${notePiuTardi(note, d)}
     <div class="decisione-box">
       <h2>La decisione</h2>
       <p>${xml(d.decisione)}</p>

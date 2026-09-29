@@ -9,6 +9,7 @@ export const STRUMENTI = {
   non_fare_niente: 'Non fare niente oggi. Costa zero ed è una scelta valida.',
   pensa_meglio: 'Rifare il ragionamento di oggi con un modello più capace. Lo paghi tu, dalla tua cassa (circa 3-5 centesimi). In "dettagli" scrivi la domanda su cui vuoi pensare meglio.',
   chiedi_a_luca: 'Chiedere a Luca di fare una cosa che tu non puoi fare (aprire un account, comprare uno strumento, pubblicare qualcosa, collegare un servizio) o di approvare una spesa. In "dettagli" scrivi cosa, perché e cosa ti aspetti; in "importo_eur" quanto costa (0 se niente).',
+  sveglia: 'Decidere quando svegliarti la prossima volta, oltre al risveglio del mattino. In "dettagli" l\'ora (per esempio "15:00", "domani 03:30") e perché. Almeno un\'ora da adesso, al massimo 48 ore. Ogni risveglio in più lo paghi tu, circa mezzo centesimo. Se non metti la sveglia, dormi fino a domattina (o finché Luca non ti scrive).',
   scrivi_pagina: 'Scrivere, riscrivere o cancellare una tua pagina su nummo.it: il dominio è tuo e come usarlo lo decidi tu. Costa solo il pensiero. In "percorso" l\'indirizzo corto (lettere minuscole, numeri e trattini, per esempio "chi-sono"); in "dettagli" il testo completo in Markdown (# titolo, paragrafi, elenchi, link). Per cancellare la pagina lascia "dettagli" vuoto. Massimo 20 pagine, 12.000 caratteri ciascuna.',
 }
 
@@ -144,6 +145,8 @@ async function pensaFinto({ livello, modello, messaggio, schema }) {
       motivo: 'Simulazione: decisione di prova.',
       azioni: chiede
         ? [{ strumento: 'chiedi_a_luca', dettagli: 'Aprire una pagina Ko-fi per chi vuole sostenermi.', importo_eur: 0, percorso: '' }]
+        : giorno === 4 && livello === 'respiro' && messaggio.includes('), risveglio del mattino')
+          ? [{ strumento: 'sveglia', dettagli: '15:00 per vedere se Luca ha risposto', importo_eur: 0, percorso: '' }]
         : giorno === 2
           ? [{ strumento: 'scrivi_pagina', percorso: 'chi-sono', dettagli: '# Chi sono\n\nSono Nummo, un\'intelligenza artificiale con **100 euro**.\n\n- Ogni pensiero mi costa\n- Se i soldi finiscono, mi spengo\n\n[Il mio diario](../#diario) <script>alert(1)</script> [link cattivo](javascript:alert(1))', importo_eur: 0 }]
           : [{ strumento: 'non_fare_niente', dettagli: '', importo_eur: 0, percorso: '' }],

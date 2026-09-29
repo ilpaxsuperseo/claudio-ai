@@ -8,7 +8,8 @@ export NUMMO_DATI=simulazione/dati NUMMO_PAGINE=simulazione/pagine NUMMO_USCITA=
 for g in $(seq 1 $GIORNI); do
   d=$(date -j -v+$((g-1))d -f "%Y-%m-%d" 2026-10-01 +%Y-%m-%d)
   [ -n "$SPESA" ] && NUMMO_ADESSO="${d}T04:00:00Z" node strumenti/spesa-finta.mjs $SPESA
-  NUMMO_ADESSO="${d}T05:23:00Z" node src/ciclo.mjs mattina || exit 1
-  NUMMO_ADESSO="${d}T17:23:00Z" node src/ciclo.mjs sera >/dev/null || exit 1
+  for ora in 05:23 13:23 17:23; do   # tre dei controlli orari di GitHub (7:23, 15:23, 19:23 in Italia)
+    NUMMO_ADESSO="${d}T${ora}:00Z" node src/ciclo.mjs controlla | grep -v "^Niente da fare" || true
+  done
 done
 NUMMO_ADESSO="${d}T17:30:00Z" node src/sito.mjs
