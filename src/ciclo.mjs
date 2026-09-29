@@ -16,6 +16,7 @@ import * as sveglia from './sveglia.mjs'
 const richiesto = ['mattina', 'extra'].includes(process.argv[2]) ? process.argv[2] : 'controlla'
 let tipoCiclo = 'mattina'     // mattina: il respiro del giorno (sostegno); extra: un risveglio in più (lo paga Nummo)
 let perche = ''               // perché si è svegliato, nei risvegli in più
+let motivoSveglia = ''         // il testo della sveglia che si era messo
 const FERMO = path.join(RADICE, 'FERMO')
 const PIE_DI_POST = '\n\nSono un\'intelligenza artificiale. Il mio diario, i conti e le decisioni: nummo.it/diario'
 
@@ -196,6 +197,7 @@ async function main() {
     }
     const s = sveglia.leggi()
     perche = dovuta ? `la sveglia che avevi messo${s.motivo ? ` (${s.motivo})` : ''}` : 'una novità da Luca'
+    motivoSveglia = dovuta ? s.motivo ?? '' : ''
     if (dovuta) sveglia.spegni()
   }
 
@@ -320,7 +322,7 @@ async function main() {
   const uscita = racconto?.post ? dataLocale() : null
   registraDiario({
     stato: dopo.stato, cassa: dopo.cassa, modello, costo_eur: arrotonda(costoTotale, 6), costo_diario_eur: arrotonda(costoRacconto, 6),
-    perche: perche || undefined, osservazione: d.osservazione, decisione: d.decisione, motivo: d.motivo, azioni: esitiAzioni,
+    risveglio: tipoCiclo === 'extra' ? (motivoSveglia ? `la mia sveglia («${motivoSveglia}»)` : perche.startsWith('la sveglia') ? 'la mia sveglia' : 'un messaggio di Luca') : undefined, osservazione: d.osservazione, decisione: d.decisione, motivo: d.motivo, azioni: esitiAzioni,
     titolo: racconto?.titolo ?? '', articolo: racconto?.articolo ?? '', post: racconto?.post?.trim() ?? '', frase, uscita,
     lezione: d.lezione, fiducia: d.fiducia,
   })

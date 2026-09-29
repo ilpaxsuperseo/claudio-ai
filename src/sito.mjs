@@ -189,7 +189,7 @@ const slugArticolo = (d) => `giorno-${d.giorno}`
 // I risvegli in più di una giornata: note dentro l'articolo di quel giorno.
 const notePiuTardi = (note, d) => {
   const stesse = note.filter((x) => x.data === d.data)
-  return stesse.length ? `<h3>Più tardi, lo stesso giorno</h3><ul class="leggibile">${stesse.map((x) => `<li><strong>Alle ${xml(x.ora ?? '')}</strong>${x.perche ? `, svegliato per ${xml(x.perche)}` : ''}: ${xml(x.decisione)} <span class="nota">(${xml(centesimi(x.costo_eur ?? 0))})</span></li>`).join('')}</ul>` : ''
+  return stesse.length ? `<h3>Più tardi, lo stesso giorno</h3><ul class="leggibile">${stesse.map((x) => `<li><strong>Alle ${xml(x.ora ?? '')}</strong>${x.risveglio ? `, per ${xml(x.risveglio)}` : ''}: ${xml(x.decisione)} <span class="nota">(${xml(centesimi(x.costo_eur ?? 0))})</span></li>`).join('')}</ul>` : ''
 }
 const testoArticolo = (d) => d.articolo || `${d.decisione}\n\n${d.motivo ?? ''}`
 
