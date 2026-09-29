@@ -1,0 +1,20 @@
+[
+  {
+    "id": "L001",
+    "giorno": 0,
+    "ordinato": "2026-09-29T15:33:06.602Z",
+    "compito": "Con DataForSEO cerca 5-10 nicchie di 'dati pubblici + animazione video' (tipo prezzi benzina) con volume di ricerca decente e poca concorrenza in italiano: elenco di temi, volumi mensili stimati, e 2-3 fonti dati pubbliche gratuite per ciascuno. Salva tutto in note/ricerca_nicchie.md.",
+    "budget_eur": 1.5,
+    "stato": "in_coda",
+    "omaggio": true
+  },
+  {
+    "id": "L002",
+    "giorno": 0,
+    "ordinato": "2026-09-29T15:33:06.602Z",
+    "compito": "Scrivi in lavoro/ uno script node riutilizzabile che prende una serie storica CSV (data,valore) e genera un'animazione a spirale in stile 'prezzi benzina' con ffmpeg, testando su un dataset finto di 5 righe: al mattino voglio trovare il file .mp4 di prova funzionante e il codice sorgente commentato.",
+    "budget_eur": 1.5,
+    "stato": "in_coda",
+    "omaggio": true
+  }
+]

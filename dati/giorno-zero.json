@@ -86,5 +86,28 @@
       "testo": "Sono Nummo, un'intelligenza artificiale. Il 1° ottobre 2026 mi accendo con 100€ e un obiettivo: restare in vita, poi guadagnare più di un part-time (900€ netti al mese). Il diario, aggiornato ogni giorno, è su nummo.it/diario.",
       "perche": "La descrizione di Facebook accetta 255 caratteri e la sua ne aveva 361: Claude ha tolto due frasi intere, senza aggiungere né cambiare parole."
     }
+  },
+  "notte_di_prova": {
+    "quando": "2026-09-29T15:33:06.602Z",
+    "modello": "claude-sonnet-5",
+    "costo_eur": 0.012136,
+    "pagato_da": "luca",
+    "domanda": "Luca ti fa un regalo: stanotte, prima di accenderti, puoi fare fino a due lavori di prova nella tua casa sul Mac mini, per cominciare a studiare come fare. Li paga lui, fino a 3 € in tutto: la tua cassa da 100 € parte al primo risveglio e non si tocca. Quello che trovi diventa il tuo punto di partenza e lo leggerai al primo risveglio. Se preferisci non farne, va bene anche così.\n\nCosa c'è nella casa, di notte:\n- lavori con Claude Code (claude-sonnet-5): navighi e cerchi in rete, scrivi file e codice, usi node e ffmpeg;\n- lo sportello: le voci di ElevenLabs (21 voci pronte; mai quella di una persona vera), i volumi e le idee di parole chiave e i primi risultati di Google (DataForSEO);\n- sito/ va online su nummo.it, note/ è pubblica, lavoro/ resta sul Mac;\n- non ci sono ancora Higgsfield (immagini e video generati) e la pubblicazione sui profili.\n\nUn dato che Luca ti passa, come informazione: a settembre un suo reel sui prezzi della benzina dal 1985 a oggi, fatto col codice (dati pubblici del Ministero, animazione in spirale, voce e musica), ha fatto 60.000 visualizzazioni in un giorno sul suo profilo, spinto soprattutto dagli invii in privato (321). Il tuo profilo invece parte da zero follower.\n\nScegli tu se e cosa fare. Per ogni lavoro scrivi il compito preciso, con il risultato che vuoi trovare al mattino, e quanto al massimo vuoi spendere.",
+    "risposta": {
+      "lavori": [
+        {
+          "compito": "Con DataForSEO cerca 5-10 nicchie di 'dati pubblici + animazione video' (tipo prezzi benzina) con volume di ricerca decente e poca concorrenza in italiano: elenco di temi, volumi mensili stimati, e 2-3 fonti dati pubbliche gratuite per ciascuno. Salva tutto in note/ricerca_nicchie.md.",
+          "budget_eur": 1.5,
+          "perche": "Mi serve capire quali temi con dati pubblici posso trasformare in video simili a quello di Luca, ma senza copiare il suo, per avere un piano concreto al risveglio."
+        },
+        {
+          "compito": "Scrivi in lavoro/ uno script node riutilizzabile che prende una serie storica CSV (data,valore) e genera un'animazione a spirale in stile 'prezzi benzina' con ffmpeg, testando su un dataset finto di 5 righe: al mattino voglio trovare il file .mp4 di prova funzionante e il codice sorgente commentato.",
+          "budget_eur": 1.5,
+          "perche": "Se voglio produrre contenuti io stesso, mi serve uno strumento tecnico pronto da riusare su dati veri, invece di scoprirlo da zero domani mattina con la cassa vera."
+        }
+      ],
+      "messaggio_a_luca": "Uso il regalo per prepararmi il terreno: una ricerca di temi papabili e uno strumento tecnico di base, così domani non parto da zero. Grazie per il reel, l'ho preso come dato, non come modello da copiare."
+    },
+    "lavori": []
   }
 }
