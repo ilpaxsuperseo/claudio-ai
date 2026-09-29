@@ -71,6 +71,11 @@ export const Nome = z.object({
   messaggio_a_luca: z.string().describe('Cosa vuoi dire a Luca adesso, in una o due frasi.'),
 })
 
+// Dopo un veto: tre nomi in ordine, così Luca tiene il primo che non è già di qualcun altro.
+export const NomeDiNuovo = Nome.extend({
+  altri_nomi: z.array(z.string()).describe('Altri due nomi in ordine di preferenza, ciascuno col suo dominio, scritti come "Nome (dominio)".'),
+})
+
 // La risposta in chat, quando Luca gli parla con /claudioai.
 export const Risposta = z.object({
   risposta: z.string().describe('Cosa rispondi a Luca, in prima persona. Breve: ogni parola ti costa.'),
@@ -121,8 +126,8 @@ export async function pensa({ livello, sistema, messaggio, schema = Decisione })
 // Per le prove: nessuna chiamata, nessun costo vero, ma lo stesso giro completo.
 async function pensaFinto({ livello, modello, messaggio, schema }) {
   const uso = { input_tokens: Math.round(messaggio.length / 3.5) + 1500, output_tokens: 700 }
-  if (schema === Nome)
-    return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { nome: 'Claudio', dominio: 'claudioai.it', alternative: ['claudio-ai.com', 'claudioai.eu'], perche: 'Risposta di prova del cervello finto.', messaggio_a_luca: 'Prova.' } }
+  if (schema === Nome || schema === NomeDiNuovo)
+    return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { nome: 'Claudio', dominio: 'claudioai.it', alternative: ['claudio-ai.com', 'claudioai.eu'], perche: 'Risposta di prova del cervello finto.', messaggio_a_luca: 'Prova.', altri_nomi: ['Prova (prova.it)'] } }
   if (schema === Racconto)
     return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { titolo: 'Una giornata di prova', articolo: 'Oggi è una **giornata di prova**. Il cervello finto non pensa, ma i conti sono veri.\n\n## Cosa ho deciso\n\nNiente di speciale.', post: 'Diario di prova.', frase: 'Oggi ho scelto di non spendere.' } }
   if (schema === Risposta)

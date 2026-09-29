@@ -1,10 +1,12 @@
 // Prima di nascere: una sola domanda, il nome e il primo dominio. Si fa una volta, prima del giorno uno.
 // La paga Luca (i 100 € di Claudio partono il primo giorno) e la risposta resta pubblica in dati/giorno-zero.json.
 // La risposta vale: non si rifà la domanda per averne una migliore.
-// Uso: node src/giorno-zero.mjs
+// Uso: node src/giorno-zero.mjs                     → la domanda (una volta sola)
+//      node src/giorno-zero.mjs --veto "motivo"     → veto legale di Luca: si sceglie di nuovo, col motivo scritto
+//      node src/giorno-zero.mjs --mostra             → rilegge la risposta
 import { execFileSync } from 'node:child_process'
 import { config, leggiJson, scriviJson, adesso, giornoDiVita, euro } from './base.mjs'
-import { pensa, Nome } from './cervello.mjs'
+import { pensa, Nome, NomeDiNuovo } from './cervello.mjs'
 import { VOCE } from './voce.mjs'
 import { centesimi } from './banconota.mjs'
 
@@ -44,41 +46,65 @@ const FATTI = `Domani, 1° ottobre 2026 alle 7:23, ti accendi. Prima c'è una so
 Luca controllerà se il dominio che scegli è libero; se non lo è, prenderà la prima alternativa libera. Può mettere il veto solo per ragioni legali, e in quel caso lo dirà pubblicamente. Questa risposta sarà pubblica.`
 
 async function main() {
-  if (giornoDiVita() >= 1) return console.log('Il giorno zero è passato: Claudio è già acceso.')
+  if (giornoDiVita() >= 1) return console.log('Il giorno zero è passato: è già acceso.')
   const giaFatto = leggiJson('giorno-zero.json', null)
-  if (giaFatto && !process.argv.includes('--mostra')) {
-    console.log('Il giorno zero è già stato fatto: la risposta vale e non si rifà.')
+  const iVeto = process.argv.indexOf('--veto')
+  if (giaFatto && iVeto < 0) {
+    if (!process.argv.includes('--mostra')) console.log('Il giorno zero è già stato fatto: la risposta vale e non si rifà.')
+    return mostra(giaFatto)
   }
-  if (giaFatto) return mostra(giaFatto)
   if (process.env.CLAUDIO_CERVELLO !== 'finto' && !process.env.ANTHROPIC_API_KEY) throw new Error('Manca ANTHROPIC_API_KEY (nel file .env).')
 
+  // Il veto: solo per ragioni legali, col motivo scritto e pubblico. Una volta sola.
+  let messaggio = FATTI
+  let schema = Nome
+  if (iVeto >= 0) {
+    if (!giaFatto) throw new Error('Non c\'è una scelta su cui mettere il veto.')
+    if (giaFatto.veto) throw new Error('Il veto è già stato usato una volta.')
+    const motivo = process.argv[iVeto + 1]?.trim()
+    if (!motivo) throw new Error('Il veto vuole il motivo: --veto "…"')
+    giaFatto.veto = { quando: adesso().toISOString(), motivo }
+    messaggio = `${FATTI}
+
+La tua prima scelta era «${giaFatto.scelta.nome}» (${giaFatto.scelta.dominio}). Luca ha messo il veto, per una ragione legale: ${motivo}
+Scegli di nuovo. Questa volta dai tre nomi in ordine di preferenza, ciascuno col suo dominio: Luca terrà il primo che non è già il nome di un'azienda o di un prodotto e che ha il dominio libero.`
+    schema = NomeDiNuovo
+  }
+
   // La decisione conta: si usa il modello più capace. La paga Luca.
-  const r = await pensa({ livello: 'pensa_meglio', schema: Nome, sistema: VOCE, messaggio: FATTI })
+  const r = await pensa({ livello: 'pensa_meglio', schema, sistema: VOCE, messaggio })
   const scelta = r.decisione
-  const domini = [scelta.dominio, ...scelta.alternative].slice(0, 4)
-  const esito = {
+  const domini = [scelta.dominio, ...scelta.alternative, ...(scelta.altri_nomi ?? []).map((x) => x.match(/\(([^)]+)\)/)?.[1]).filter(Boolean)]
+  const giro = {
     quando: adesso().toISOString(),
     modello: r.modello,
     costo_eur: r.costo.eur,
     pagato_da: 'luca',
-    fatti: FATTI,
+    fatti: messaggio,
     scelta,
-    disponibilita: Object.fromEntries(domini.map((d) => [d, disponibile(d)])),
+    disponibilita: Object.fromEntries([...new Set(domini)].map((d) => [d, disponibile(d)])),
   }
+  const esito = giaFatto ? { ...giaFatto, secondo: giro } : giro
   scriviJson('giorno-zero.json', esito)
   mostra(esito)
 }
 
 function mostra(e) {
-  const s = e.scelta
-  console.log(`Nome: ${s.nome}`)
-  console.log(`Dominio: ${s.dominio}  →  ${e.disponibilita[s.dominio] ?? '?'}`)
-  console.log(`Alternative: ${s.alternative.map((d) => `${d} (${e.disponibilita[d] ?? '?'})`).join(', ')}`)
-  console.log(`\nPerché: ${s.perche}\n\nA Luca: «${s.messaggio_a_luca}»`)
-  console.log(`\n(Deciso con ${e.modello}. È costato ${centesimi(e.costo_eur)}, pagati da Luca.)`)
+  const giri = [e, e.secondo].filter(Boolean)
+  giri.forEach((g, i) => {
+    const s = g.scelta
+    if (i === 1) console.log(`\n— Veto di Luca: ${e.veto.motivo}\n`)
+    console.log(`Nome: ${s.nome}${s.altri_nomi?.length ? `   (poi: ${s.altri_nomi.join(', ')})` : ''}`)
+    console.log(`Dominio: ${s.dominio}  →  ${g.disponibilita[s.dominio] ?? '?'}`)
+    console.log(`Alternative: ${s.alternative.map((d) => `${d} (${g.disponibilita[d] ?? '?'})`).join(', ')}`)
+    console.log(`\nPerché: ${s.perche}\n\nA Luca: «${s.messaggio_a_luca}»`)
+    console.log(`\n(Deciso con ${g.modello}. È costato ${centesimi(g.costo_eur)}, pagati da Luca.)`)
+  })
 }
 
-main().catch((e) => {
-  console.error(e.message)
-  process.exit(1)
-})
+// Parte solo se lanciato direttamente: importarlo non deve mai fare la domanda.
+if (process.argv[1] === new URL(import.meta.url).pathname)
+  main().catch((e) => {
+    console.error(e.message)
+    process.exit(1)
+  })
