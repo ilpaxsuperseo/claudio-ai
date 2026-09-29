@@ -225,10 +225,11 @@ async function turno() {
       registraCosto({ categoria: 'servizi', importo_eur: costoServizi, descrizione: `Lavoro notturno ${l.id}: sportello (${[...new Set(chiamate.map((x) => x.servizio))].join(', ')}, ${chiamate.length} chiamate)`, rif: `lavoro ${l.id} sportello`, giaSostenuto: true })
 
     const so = r?.structured_output
+    const finitoIlBudget = /budget/.test(r?.subtype ?? '')
     const costo = arrotonda(costoToken + costoServizi, 6)
     Object.assign(l, {
-      stato: so?.esito ?? 'non_riuscito',
-      riassunto: (so?.racconto ?? errore?.message ?? r?.result ?? 'Nessun resoconto.').slice(0, 800),
+      stato: so?.esito ?? (finitoIlBudget ? 'in_parte' : 'non_riuscito'),
+      riassunto: (so?.racconto ?? (finitoIlBudget ? 'Il budget è finito prima della fine: il lavoro si è fermato dov\'era, con quello che avevo salvato.' : errore?.message ?? r?.result ?? 'Nessun resoconto.')).slice(0, 800),
       file: so?.file ?? [],
       costo_eur: costo,
       finito: adesso().toISOString(),
