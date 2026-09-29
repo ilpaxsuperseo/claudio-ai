@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+
 // Il telefono di Nummo: il bot @nummoai_bot. Parla con una sola chat, quella di Luca.
 // Scrivere è una cortesia: se Telegram non risponde, il ciclo va avanti lo stesso.
 const token = () => process.env.NUMMO_TELEGRAM_TOKEN || process.env.TELEGRAM_TOKEN
@@ -29,6 +31,23 @@ export async function scriviALuca(testo, { rispondiA } = {}) {
     return m.message_id
   } catch (e) {
     console.error(`Messaggio a Luca non inviato: ${e.message}`)
+    return null
+  }
+}
+
+// Un file a Luca (come documento: arriva senza compressione, pronto da caricare sui profili).
+export async function fileALuca(percorso, didascalia = '') {
+  if (!collegato()) return null
+  try {
+    const corpo = new FormData()
+    corpo.append('chat_id', chatDiLuca())
+    if (didascalia) corpo.append('caption', didascalia.slice(0, 1000))
+    corpo.append('document', new Blob([fs.readFileSync(percorso)]), percorso.split('/').pop())
+    const j = await (await fetch(`https://api.telegram.org/bot${token()}/sendDocument`, { method: 'POST', body: corpo })).json()
+    if (!j.ok) throw new Error(j.description)
+    return j.result.message_id
+  } catch (e) {
+    console.error(`File a Luca non inviato: ${e.message}`)
     return null
   }
 }

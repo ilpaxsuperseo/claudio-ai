@@ -5,12 +5,16 @@
 //      node src/giorno-zero.mjs --veto "motivo"     → veto legale di Luca: si sceglie di nuovo, col motivo scritto
 //      node src/giorno-zero.mjs --mostra             → rilegge la risposta
 //      node src/giorno-zero.mjs --domanda "fatti e domanda"  → un'altra domanda prima di nascere (sì/no con il perché)
-//      node src/giorno-zero.mjs --profili "fatti"  → si scrive da solo nome e bio dei profili social
+//      node src/giorno-zero.mjs --profili "fatti"  → si scrive da solo nome, bio e immagine dei profili social (una volta sola)
+import fs from 'node:fs'
+import path from 'node:path'
 import { execFileSync } from 'node:child_process'
-import { config, leggiJson, scriviJson, adesso, giornoDiVita, euro } from './base.mjs'
+import { Resvg } from '@resvg/resvg-js'
+import { RADICE, config, leggiJson, scriviJson, adesso, giornoDiVita, euro } from './base.mjs'
 import { pensa, Nome, NomeDiNuovo, Scelte, Profili } from './cervello.mjs'
 import { VOCE } from './voce.mjs'
 import { centesimi } from './banconota.mjs'
+import { scriviALuca, fileALuca } from './telegram.mjs'
 
 // Chi risponde per ogni estensione, e come dice «libero».
 const REGISTRI = {
@@ -54,6 +58,7 @@ async function main() {
   const iProfili = process.argv.indexOf('--profili')
   if (iProfili >= 0) {
     if (!giaFatto) throw new Error('Prima serve il giorno zero.')
+    if (giaFatto.profili) return console.log('I profili li ha già scritti: la risposta vale e non si rifà.\n', JSON.stringify(giaFatto.profili.risposta, null, 2))
     if (process.env.NUMMO_CERVELLO !== 'finto' && !process.env.ANTHROPIC_API_KEY) throw new Error('Manca ANTHROPIC_API_KEY (nel file .env).')
     const scelta = giaFatto.secondo?.scelta ?? giaFatto.scelta
     const messaggio = `Ti chiami ${scelta.nome}. Domani, 1° ottobre 2026 alle 7:23, ti accendi con 100 € e l'obiettivo di restare in vita e poi guadagnare più di un part-time (900 € netti al mese).\n\n${process.argv[iProfili + 1] ?? ''}`
@@ -63,8 +68,23 @@ async function main() {
     giaFatto.profili = { quando: adesso().toISOString(), modello: r.modello, costo_eur: r.costo.eur, pagato_da: 'luca', risposta: p }
     scriviJson('giorno-zero.json', giaFatto)
     for (const [k, max] of Object.entries(limiti)) console.log(`${k} (${p[k].length}/${max}${p[k].length > max ? ' TROPPO LUNGA' : ''}):\n  ${p[k]}`)
-    console.log(`immagine: ${p.immagine.va_bene ? 'va bene' : `da cambiare — ${p.immagine.cosa_cambieresti}`}`)
+    console.log(`immagine: ${p.immagine.come} — ${p.immagine.perche}`)
     console.log(`\nA Luca: «${p.messaggio_a_luca}»\n(${r.modello}, ${centesimi(r.costo.eur)} pagati da Luca.)`)
+
+    // Sul telefono di Luca: le bio da incollare e, se l'ha disegnata, l'immagine pronta da caricare.
+    await scriviALuca([
+      `Nome: ${p.nome_visualizzato}`, `Instagram:\n${p.bio_instagram}`, `X:\n${p.bio_x}`, `TikTok:\n${p.bio_tiktok}`, `Facebook:\n${p.bio_facebook}`, p.messaggio_a_luca,
+    ].join('\n\n'))
+    if (p.immagine.come === 'la_disegno_io_col_codice') {
+      const cartella = path.join(RADICE, 'interno', 'social')
+      fs.mkdirSync(cartella, { recursive: true })
+      const caratteri = fs.readdirSync(path.join(RADICE, 'caratteri')).filter((f) => f.endsWith('.ttf')).map((f) => path.join(RADICE, 'caratteri', f))
+      const png = new Resvg(p.immagine.svg, { fitTo: { mode: 'width', value: 1080 }, font: { fontFiles: caratteri, loadSystemFonts: false } }).render().asPng()
+      const file = path.join(cartella, 'immagine-profilo.png')
+      fs.writeFileSync(file, png)
+      console.log(`\nL'immagine disegnata da lui: ${path.relative(RADICE, file)}`)
+      await fileALuca(file, `La mia immagine del profilo, disegnata da me. ${p.immagine.perche}`)
+    } else if (p.immagine.come === 'la_chiedo_a_un_generatore') console.log(`\nDa generare: ${p.immagine.prompt}`)
     return
   }
 

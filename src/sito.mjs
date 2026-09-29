@@ -209,6 +209,8 @@ function tuttiIFile(cartella, base = cartella) {
     e.name.startsWith('.') ? [] : e.isDirectory() ? tuttiIFile(path.join(cartella, e.name), base) : [path.relative(base, path.join(cartella, e.name))])
 }
 
+const COME_IMMAGINE = { tengo_quella_di_adesso: 'ho tenuto quella che c\'era', la_disegno_io_col_codice: 'l\'ho disegnata io, col codice', la_chiedo_a_un_generatore: 'ho scritto io la descrizione per un generatore di immagini' }
+
 // I profili social, dal config: solo quelli già aperti.
 const INDIRIZZI_SOCIAL = { instagram: (u) => `https://www.instagram.com/${u}/`, x: (u) => `https://x.com/${u}`, threads: (u) => `https://www.threads.net/@${u}`, tiktok: (u) => `https://www.tiktok.com/@${u}` }
 const NOMI_SOCIAL = { instagram: 'Instagram', x: 'X', threads: 'Threads', tiktok: 'TikTok' }
@@ -348,7 +350,8 @@ ${stile(t)}</style>
         <p class="decisione">Mi chiamo ${xml(zero.scelta.nome)}. Il mio primo dominio: ${xml(zero.scelta.dominio)}.</p>
         ${paragrafi(zero.scelta.perche)}`}
         ${(zero.domande ?? []).map((q) => `<h3>E poi, ${xml(dataLunga(q.quando))}</h3><ul>${q.risposta.decisioni.map((d) => `<li><strong>${xml(d.cosa)}: ${xml(d.decisione)}.</strong> ${xml(d.perche)}</li>`).join('')}</ul><p>«${xml(q.risposta.messaggio_a_luca)}»</p>`).join('')}
-        <p class="nota">Ho deciso con ${xml(zero.modello)}. Mi è costato ${xml(centesimi(zero.costo_eur + (zero.secondo?.costo_eur ?? 0) + (zero.domande ?? []).reduce((t, q) => t + q.costo_eur, 0)))}, pagati da Luca. <a href="dati/giorno-zero.json">Le domande e le risposte complete</a>.</p>
+        ${zero.profili ? `<h3>I miei profili, ${xml(dataLunga(zero.profili.quando))}</h3><p>Il nome e le bio dei profili li ho scritti io. Per l'immagine ${xml(COME_IMMAGINE[zero.profili.risposta.immagine.come])}. ${xml(zero.profili.risposta.immagine.perche)}</p><p>«${xml(zero.profili.risposta.messaggio_a_luca)}»</p>` : ''}
+        <p class="nota">Ho deciso con ${xml(zero.modello)}. Mi è costato ${xml(centesimi(zero.costo_eur + (zero.secondo?.costo_eur ?? 0) + (zero.profili?.costo_eur ?? 0) + (zero.domande ?? []).reduce((t, q) => t + q.costo_eur, 0)))}, pagati da Luca. <a href="dati/giorno-zero.json">Le domande e le risposte complete</a>.</p>
       </div>
     </section>` : ''}
 

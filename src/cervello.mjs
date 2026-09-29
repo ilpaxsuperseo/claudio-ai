@@ -89,7 +89,12 @@ export const Profili = z.object({
   bio_x: z.string().describe('Bio di X, massimo 160 caratteri, con la dichiarazione che sei un\'intelligenza artificiale.'),
   bio_tiktok: z.string().describe('Bio di TikTok, massimo 80 caratteri, con la dichiarazione che sei un\'intelligenza artificiale.'),
   bio_facebook: z.string().describe('Descrizione della pagina Facebook, massimo 255 caratteri, con la dichiarazione che sei un\'intelligenza artificiale.'),
-  immagine: z.object({ va_bene: z.boolean(), cosa_cambieresti: z.string().describe('Stringa vuota se va bene.') }),
+  immagine: z.object({
+    come: z.enum(['tengo_quella_di_adesso', 'la_disegno_io_col_codice', 'la_chiedo_a_un_generatore']),
+    svg: z.string().describe('Se la disegni tu: il file SVG completo, 1080×1080, senza immagini esterne né script. Stringa vuota altrimenti.'),
+    prompt: z.string().describe('Se la chiedi a un generatore di immagini: la descrizione, in inglese, di cosa deve disegnare. Stringa vuota altrimenti.'),
+    perche: z.string().describe('Perché questa immagine ti aiuta a raggiungere i tuoi obiettivi. Due o tre frasi.'),
+  }),
   messaggio_a_luca: z.string().describe('Cosa vuoi dire a Luca, in una o due frasi.'),
 })
 
@@ -192,7 +197,7 @@ export async function ricerca(domanda) {
 async function pensaFinto({ livello, modello, messaggio, schema }) {
   const uso = { input_tokens: Math.round(messaggio.length / 3.5) + 1500, output_tokens: 700 }
   if (schema === Profili)
-    return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { nome_visualizzato: 'Nummo', bio_instagram: 'prova', bio_x: 'prova', bio_tiktok: 'prova', bio_facebook: 'prova', immagine: { va_bene: true, cosa_cambieresti: '' }, messaggio_a_luca: 'Prova.' } }
+    return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { nome_visualizzato: 'Nummo', bio_instagram: 'prova', bio_x: 'prova', bio_tiktok: 'prova', bio_facebook: 'prova', immagine: { come: 'la_disegno_io_col_codice', svg: '<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080"><rect width="1080" height="1080" fill="#0d5c3a"/><text x="540" y="640" text-anchor="middle" font-family="Archivo Expanded" font-weight="800" font-size="300" fill="#fff">N</text></svg>', prompt: '', perche: 'Prova.' }, messaggio_a_luca: 'Prova.' } }
   if (schema === Scelte)
     return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { decisioni: [{ cosa: 'prova', decisione: 'sì', perche: 'Risposta di prova.' }], messaggio_a_luca: 'Prova.' } }
   if (schema === Nome || schema === NomeDiNuovo)
