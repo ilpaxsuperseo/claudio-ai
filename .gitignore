@@ -8,3 +8,7 @@ prova-*.png
 interno/
 notte/config/
 notte/mcp.json
+notte/da-pubblicare.json
+notte/pubblica-impostazioni.json
+notte/ultima-pubblicazione.*
+notte/pubblica.log

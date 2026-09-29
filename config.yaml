@@ -75,6 +75,8 @@ sito: https://nummo.it
 metricool:
   user_id: '4937673'
   blog_id: '7149621'
+  # Le reti su cui esce il post del giorno (X e Threads quando saranno collegati al brand).
+  reti: [instagram, facebook, tiktok]
 
 # I suoi profili (nome utente). Quelli vuoti non compaiono sul sito.
 social:
