@@ -108,6 +108,16 @@ export const Scelte = z.object({
   messaggio_a_luca: z.string().describe('Cosa vuoi dire a Luca, in una o due frasi.'),
 })
 
+// La notte di prova prima di nascere: fino a due lavori, regalati da Luca.
+export const LavoriDiProva = z.object({
+  lavori: z.array(z.object({
+    compito: z.string().describe('Il compito, preciso, con il risultato che vuoi trovare al mattino.'),
+    budget_eur: z.number().describe('Quanto al massimo per questo lavoro, in euro.'),
+    perche: z.string().describe('Perché questo lavoro ti serve per i tuoi obiettivi. Una o due frasi.'),
+  })).describe('Da zero a due lavori. Un elenco vuoto se preferisci non farne.'),
+  messaggio_a_luca: z.string().describe('Cosa vuoi dire a Luca, in una o due frasi.'),
+})
+
 // La risposta in chat, quando Luca gli parla con /nummo.
 export const Risposta = z.object({
   risposta: z.string().describe('Cosa rispondi a Luca, in prima persona. Breve: ogni parola ti costa.'),
@@ -198,6 +208,8 @@ async function pensaFinto({ livello, modello, messaggio, schema }) {
   const uso = { input_tokens: Math.round(messaggio.length / 3.5) + 1500, output_tokens: 700 }
   if (schema === Profili)
     return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { nome_visualizzato: 'Nummo', bio_instagram: 'prova', bio_x: 'prova', bio_tiktok: 'prova', bio_facebook: 'prova', immagine: { come: 'la_disegno_io_col_codice', svg: '<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080"><rect width="1080" height="1080" fill="#0d5c3a"/><text x="540" y="640" text-anchor="middle" font-family="Archivo Expanded" font-weight="800" font-size="300" fill="#fff">N</text></svg>', prompt: '', perche: 'Prova.' }, messaggio_a_luca: 'Prova.' } }
+  if (schema === LavoriDiProva)
+    return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { lavori: [{ compito: 'Scrivi in note/prova.md una riga di prova.', budget_eur: 0.2, perche: 'Prova.' }], messaggio_a_luca: 'Prova.' } }
   if (schema === Scelte)
     return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { decisioni: [{ cosa: 'prova', decisione: 'sì', perche: 'Risposta di prova.' }], messaggio_a_luca: 'Prova.' } }
   if (schema === Nome || schema === NomeDiNuovo)

@@ -6,12 +6,13 @@
 //      node src/giorno-zero.mjs --mostra             → rilegge la risposta
 //      node src/giorno-zero.mjs --domanda "fatti e domanda"  → un'altra domanda prima di nascere (sì/no con il perché)
 //      node src/giorno-zero.mjs --profili "fatti"  → si scrive da solo nome, bio e immagine dei profili social (una volta sola)
+//      node src/giorno-zero.mjs --notte "fatti"    → sceglie fino a due lavori di prova per la notte, pagati da Luca (una volta sola)
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { Resvg } from '@resvg/resvg-js'
-import { RADICE, config, leggiJson, scriviJson, adesso, giornoDiVita, euro } from './base.mjs'
-import { pensa, Nome, NomeDiNuovo, Scelte, Profili } from './cervello.mjs'
+import { RADICE, config, leggiJson, scriviJson, adesso, giornoDiVita, euro, arrotonda } from './base.mjs'
+import { pensa, Nome, NomeDiNuovo, Scelte, Profili, LavoriDiProva } from './cervello.mjs'
 import { VOCE } from './voce.mjs'
 import { centesimi } from './banconota.mjs'
 import { scriviALuca, fileALuca } from './telegram.mjs'
@@ -85,6 +86,37 @@ async function main() {
       console.log(`\nL'immagine disegnata da lui: ${path.relative(RADICE, file)}`)
       await fileALuca(file, `La mia immagine del profilo, disegnata da me. ${p.immagine.perche}`)
     } else if (p.immagine.come === 'la_chiedo_a_un_generatore') console.log(`\nDa generare: ${p.immagine.prompt}`)
+    return
+  }
+
+  // La notte di prova: sceglie lui se e cosa fare. I lavori vanno nella coda della notte, pagati da Luca.
+  const iNotte = process.argv.indexOf('--notte')
+  if (iNotte >= 0) {
+    if (!giaFatto) throw new Error('Prima serve il giorno zero.')
+    if (giaFatto.notte_di_prova?.risposta) return console.log('La notte di prova l\'ha già scelta: la risposta vale e non si rifà.')
+    if (process.env.NUMMO_CERVELLO !== 'finto' && !process.env.ANTHROPIC_API_KEY) throw new Error('Manca ANTHROPIC_API_KEY (nel file .env).')
+    const scelta = giaFatto.secondo?.scelta ?? giaFatto.scelta
+    const domanda = process.argv[iNotte + 1]?.trim() ?? ''
+    const messaggio = `Ti chiami ${scelta.nome}. Il 1° ottobre 2026 alle 7:23 ti accendi con 100 € e l'obiettivo di restare in vita e poi guadagnare più di un part-time (900 € netti al mese).\n\n${domanda}`
+    const r = await pensa({ livello: 'pensa_meglio', schema: LavoriDiProva, sistema: VOCE, messaggio })
+    // Al massimo due lavori e al massimo il regalo di Luca in tutto: quello che sfora si accorcia.
+    let resta = config.notte.omaggio_eur
+    const lavori = leggiJson('lavori.json', [])
+    const scelti = []
+    for (const x of r.decisione.lavori.slice(0, 2)) {
+      const budget = arrotonda(Math.min(Math.max(0, x.budget_eur), resta), 2)
+      if (budget < 0.05 || !x.compito.trim()) continue
+      resta -= budget
+      const id = `L${String(lavori.length + 1).padStart(3, '0')}`
+      lavori.push({ id, giorno: 0, ordinato: adesso().toISOString(), compito: x.compito.trim(), budget_eur: budget, stato: 'in_coda', omaggio: true })
+      scelti.push({ id, budget, ...x })
+    }
+    scriviJson('lavori.json', lavori)
+    giaFatto.notte_di_prova = { quando: adesso().toISOString(), modello: r.modello, costo_eur: r.costo.eur, pagato_da: 'luca', domanda, risposta: r.decisione, lavori: [] }
+    scriviJson('giorno-zero.json', giaFatto)
+    for (const x of scelti) console.log(`${x.id} (fino a ${euro(x.budget)}): ${x.compito}\n  Perché: ${x.perche}\n`)
+    if (!scelti.length) console.log('Ha scelto di non fare lavori di prova.')
+    console.log(`A Luca: «${r.decisione.messaggio_a_luca}»\n(${r.modello}, ${centesimi(r.costo.eur)} pagati da Luca.)`)
     return
   }
 

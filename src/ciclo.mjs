@@ -166,7 +166,7 @@ function osservazione({ c, richieste, memoria }) {
     'I TUOI LAVORI NOTTURNI',
     ...(() => {
       const lavori = leggiJson('lavori.json', []).slice(-5)
-      return lavori.length ? lavori.map((l) => `- ${l.id} (giorno ${l.giorno}, budget ${euro(l.budget_eur)}): ${l.stato}${l.riassunto ? ` — ${l.riassunto}` : ''}${l.costo_eur != null ? ` (speso ${euro(l.costo_eur, 4)})` : ''}. Compito: ${l.compito.slice(0, 160)}`) : ['- nessuno ancora']
+      return lavori.length ? lavori.map((l) => `- ${l.id} (giorno ${l.giorno}, budget ${euro(l.budget_eur)}): ${l.stato}${l.riassunto ? ` — ${l.riassunto}` : ''}${l.costo_eur != null ? ` (${l.omaggio ? 'prova prima di nascere, pagata da Luca: ' : 'speso '}${euro(l.costo_eur, 4)})` : ''}. Compito: ${l.compito.slice(0, 160)}`) : ['- nessuno ancora']
     })(),
     '',
     'I TUOI LINK DI PAGAMENTO',

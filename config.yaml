@@ -48,6 +48,8 @@ notte:
   modello: claude-sonnet-5
   # Del budget di ogni lavoro, la parte che può andare allo sportello (voce, parole chiave); il resto è per i token.
   quota_servizi: 0.4
+  # La notte di prova prima di nascere (giorno-zero --notte): la paga Luca, al massimo questo in tutto.
+  omaggio_eur: 3
   tetto_per_stato: { PROSPERO: 3, STABILE: 2, PRUDENTE: 1, DISPERATO: 0.5, CRITICO: 0.2 }
 
 # Stati di sopravvivenza: mesi di autonomia se il sostegno finisse oggi.

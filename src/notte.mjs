@@ -6,6 +6,7 @@
 // Alla fine pubblica sito e note della casa e manda a Luca un riassunto senza suono.
 // Uso: node src/notte.mjs             → il turno
 //      node src/notte.mjs --collaudo  → prova che la casa tiene (pochi centesimi, fuori dal libro dei conti)
+// Con NUMMO_NOTTE_A_SECCO=1 (e NUMMO_DATI/NUMMO_CASA di prova) fa tutto tranne salvare, pubblicare e avvisare Luca.
 import fs from 'node:fs'
 import path from 'node:path'
 import { spawn, execFileSync } from 'node:child_process'
@@ -114,8 +115,8 @@ ${l.compito}
 
 I SOLDI
 - Per ragionare e lavorare (token e ricerche in rete) hai fino a ${euro(token)}. Quando finiscono ti fermi dove sei: salva spesso.
-- ${sportello ? `Allo sportello hai fino a ${euro(servizi)}: ${attivi().join(', ')}. Ogni chiamata ha un prezzo e lo paghi tu.` : 'Lo sportello stanotte è chiuso: niente servizi a pagamento.'}
-- In cassa adesso hai ${euro(c.cassa)} (stato ${c.stato}).
+- ${sportello ? `Allo sportello hai fino a ${euro(servizi)}: ${attivi().join(', ')}. Ogni chiamata ha un prezzo${l.omaggio ? '' : ' e lo paghi tu'}.` : 'Lo sportello stanotte è chiuso: niente servizi a pagamento.'}
+- ${l.omaggio ? 'Questo lavoro te lo regala Luca: è una prova prima che tu nasca. La tua cassa da 100 € parte al primo risveglio e questo lavoro non la tocca.' : `In cassa adesso hai ${euro(c.cassa)} (stato ${c.stato}).`}
 
 GLI ATTREZZI
 - La rete: cercare e leggere pagine.
@@ -128,6 +129,15 @@ COSA SUCCEDE DOPO
 - Alla fine rispondi col resoconto: cosa hai fatto, in prima persona. Finisce nel tuo diario.`
 }
 
+// Le prove prima di nascere le paga Luca: fuori dal libro dei conti (che parte coi 100 € del giorno uno),
+// scritte con le altre domande del giorno zero, pubbliche anche loro.
+function annotaProva(l) {
+  const zero = leggiJson('giorno-zero.json', {})
+  const prove = (zero.notte_di_prova?.lavori ?? []).filter((x) => x.id !== l.id)
+  zero.notte_di_prova = { ...zero.notte_di_prova, pagato_da: 'luca', lavori: [...prove, { id: l.id, compito: l.compito, stato: l.stato, riassunto: l.riassunto, file: l.file ?? [], costo_eur: l.costo_eur }] }
+  scriviJson('giorno-zero.json', zero)
+}
+
 // Sito e note della casa nel repository. Passano solo file veri di Nummo: niente collegamenti
 // (simbolici o fisici) che potrebbero puntare a file di Luca, niente file nascosti o troppo grandi.
 function copiaCasa() {
@@ -135,7 +145,7 @@ function copiaCasa() {
   const lasciati = []
   for (const parte of ['sito', 'note']) {
     const da = path.join(CASA, parte)
-    const a = path.join(RADICE, 'casa', parte)
+    const a = path.resolve(RADICE, process.env.NUMMO_CASA || 'casa', parte)
     fs.rmSync(a, { recursive: true, force: true })
     if (!fs.existsSync(da)) continue
     fs.cpSync(da, a, {
@@ -171,29 +181,32 @@ function salva(messaggio) {
 async function turno() {
   if (fs.existsSync(path.join(RADICE, 'FERMO'))) return console.log('FERMO: stanotte niente.')
   git('pull', '-q', '--rebase', '--autostash', 'origin', 'main')
-  if (giornoDiVita() < 1) return console.log('Non è ancora acceso.')
-  if (voci().some((v) => v.tipo === 'morte')) return console.log('È morto: niente lavori.')
+  // Prima di nascere girano solo i lavori di prova che Luca gli ha regalato (--notte del giorno zero).
+  const primaDiNascere = giornoDiVita() < 1
+  if (!primaDiNascere && voci().some((v) => v.tipo === 'morte')) return console.log('È morto: niente lavori.')
 
   const lavori = leggiJson('lavori.json', [])
   const cambio = await cambioUsdEur()
   // Un lavoro rimasto «in corso» è una notte interrotta: il suo costo non si conosce, si registra il massimo.
-  for (const l of lavori.filter((l) => l.stato === 'in_corso' && !giaRegistrato(`lavoro ${l.id}`))) {
-    registraCosto({ categoria: 'lavoro', importo_eur: l.budget_eur, descrizione: `Lavoro notturno ${l.id} interrotto senza resoconto: registrato il massimo`, rif: `lavoro ${l.id}`, giaSostenuto: true })
+  for (const l of lavori.filter((l) => l.stato === 'in_corso' && (l.omaggio || !giaRegistrato(`lavoro ${l.id}`)))) {
+    if (!l.omaggio) registraCosto({ categoria: 'lavoro', importo_eur: l.budget_eur, descrizione: `Lavoro notturno ${l.id} interrotto senza resoconto: registrato il massimo`, rif: `lavoro ${l.id}`, giaSostenuto: true })
     Object.assign(l, { stato: 'non_riuscito', riassunto: 'La notte si è interrotta prima del resoconto.', costo_eur: l.budget_eur })
+    if (l.omaggio) annotaProva(l)
   }
-  const coda = lavori.filter((l) => l.stato === 'in_coda')
+  const coda = lavori.filter((l) => l.stato === 'in_coda' && (l.omaggio || !primaDiNascere))
   if (!coda.length) {
+    if (primaDiNascere) return console.log('Non è ancora acceso e non ci sono prove in coda.')
     scriviJson('lavori.json', lavori)
     return salva(`Notte del giorno ${giornoDiVita()}: nessun lavoro`) && console.log('Nessun lavoro in coda.')
   }
 
-  let resta = config.notte.tetto_per_stato[conti().stato] ?? 0
+  let resta = primaDiNascere ? config.notte.omaggio_eur : config.notte.tetto_per_stato[conti().stato] ?? 0
   const fatti = []
   for (const l of coda) {
     const c = conti()
     const budget = arrotonda(Math.min(l.budget_eur, resta), 2)
     if (budget < 0.05) break // il tetto della notte è finito: il lavoro resta in coda per domani
-    if (!puoPagare('lavoro', budget)) {
+    if (!l.omaggio && !puoPagare('lavoro', budget)) {
       Object.assign(l, { stato: 'non_riuscito', riassunto: `In cassa non c'erano i ${euro(budget)} del budget: non l'ho cominciato.`, costo_eur: 0 })
       continue
     }
@@ -220,8 +233,8 @@ async function turno() {
     const costoToken = r?.total_cost_usd != null ? r.total_cost_usd * cambio : token
     const chiamate = spesoAlloSportello(registro)
     const costoServizi = chiamate.reduce((t, x) => t + x.costo_eur, 0)
-    registraCosto({ categoria: 'lavoro', importo_eur: costoToken, descrizione: `Lavoro notturno ${l.id}: token (${config.notte.modello})${r ? '' : ', registrato il massimo: si è interrotto senza resoconto'}`, rif: `lavoro ${l.id}`, giaSostenuto: true })
-    if (costoServizi > 0)
+    if (!l.omaggio) registraCosto({ categoria: 'lavoro', importo_eur: costoToken, descrizione: `Lavoro notturno ${l.id}: token (${config.notte.modello})${r ? '' : ', registrato il massimo: si è interrotto senza resoconto'}`, rif: `lavoro ${l.id}`, giaSostenuto: true })
+    if (!l.omaggio && costoServizi > 0)
       registraCosto({ categoria: 'servizi', importo_eur: costoServizi, descrizione: `Lavoro notturno ${l.id}: sportello (${[...new Set(chiamate.map((x) => x.servizio))].join(', ')}, ${chiamate.length} chiamate)`, rif: `lavoro ${l.id} sportello`, giaSostenuto: true })
 
     const so = r?.structured_output
@@ -234,11 +247,13 @@ async function turno() {
       costo_eur: costo,
       finito: adesso().toISOString(),
     })
+    if (l.omaggio) annotaProva(l)
     const notizie = leggiJson('notizie.json', [])
-    scriviJson('notizie.json', [...notizie, { quando: adesso().toISOString(), testo: `Il lavoro notturno ${l.id} è ${l.stato.replace('_', ' ')} (speso ${euro(costo, 4)}): ${l.riassunto}` }])
+    const chi = l.omaggio ? `pagato da Luca: era una prova prima di nascere, costata ${euro(costo, 4)}` : `speso ${euro(costo, 4)}`
+    scriviJson('notizie.json', [...notizie, { quando: adesso().toISOString(), testo: `Il lavoro notturno ${l.id} è ${l.stato.replace('_', ' ')} (${chi}): ${l.riassunto}` }])
     if (so?.da_ricordare?.trim()) {
       const memoria = leggiJson('memoria.json', { strategia: '', lezioni: [], appunti: [] })
-      memoria.appunti = [...(memoria.appunti ?? []), `Giorno ${giornoDiVita()}, dal lavoro notturno ${l.id}: ${so.da_ricordare.trim()}`].slice(-20)
+      memoria.appunti = [...(memoria.appunti ?? []), `${primaDiNascere ? 'Prima di nascere' : `Giorno ${giornoDiVita()}`}, dal lavoro notturno ${l.id}: ${so.da_ricordare.trim()}`].slice(-20)
       scriviJson('memoria.json', memoria)
     }
     scriviJson('lavori.json', lavori)
@@ -248,11 +263,12 @@ async function turno() {
 
   const lasciati = copiaCasa()
   scriviJson('lavori.json', lavori)
-  if (salva(`Notte del giorno ${giornoDiVita()}: ${fatti.map((l) => `${l.id} ${l.stato}`).join(', ') || 'niente'}`))
+  if (process.env.NUMMO_NOTTE_A_SECCO) return console.log(JSON.stringify({ fatti, lasciati }, null, 2))
+  if (salva(`${primaDiNascere ? 'Notte di prova, prima di nascere' : `Notte del giorno ${giornoDiVita()}`}: ${fatti.map((l) => `${l.id} ${l.stato}`).join(', ') || 'niente'}`))
     execFileSync('gh', ['workflow', 'run', 'nummo.yml', '--repo', REPO, '-f', 'ciclo=solo-sito'])
   await scriviALuca([
     'Stanotte ho lavorato.',
-    ...fatti.map((l) => `${l.id} · ${l.stato.replace('_', ' ')} · ${euro(l.costo_eur)}\n${l.riassunto}`),
+    ...fatti.map((l) => `${l.id} · ${l.stato.replace('_', ' ')} · ${euro(l.costo_eur)}${l.omaggio ? ' pagati da te' : ''}\n${l.riassunto}`),
     lasciati.length ? `Non messi online (collegamenti, file nascosti, illeggibili o oltre 20 MB): ${lasciati.slice(0, 10).join(', ')}` : '',
   ].filter(Boolean).join('\n\n'), { silenzioso: true })
 }
