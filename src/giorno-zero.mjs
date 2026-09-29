@@ -4,9 +4,10 @@
 // Uso: node src/giorno-zero.mjs                     → la domanda (una volta sola)
 //      node src/giorno-zero.mjs --veto "motivo"     → veto legale di Luca: si sceglie di nuovo, col motivo scritto
 //      node src/giorno-zero.mjs --mostra             → rilegge la risposta
+//      node src/giorno-zero.mjs --domanda "fatti e domanda"  → un'altra domanda prima di nascere (sì/no con il perché)
 import { execFileSync } from 'node:child_process'
 import { config, leggiJson, scriviJson, adesso, giornoDiVita, euro } from './base.mjs'
-import { pensa, Nome, NomeDiNuovo } from './cervello.mjs'
+import { pensa, Nome, NomeDiNuovo, Scelte } from './cervello.mjs'
 import { VOCE } from './voce.mjs'
 import { centesimi } from './banconota.mjs'
 
@@ -48,6 +49,22 @@ Luca controllerà se il dominio che scegli è libero; se non lo è, prenderà la
 async function main() {
   if (giornoDiVita() >= 1) return console.log('Il giorno zero è passato: è già acceso.')
   const giaFatto = leggiJson('giorno-zero.json', null)
+  // Un'altra domanda prima di nascere: la paga Luca, resta pubblica e la risposta vale.
+  const iDomanda = process.argv.indexOf('--domanda')
+  if (iDomanda >= 0) {
+    if (!giaFatto) throw new Error('Prima serve il giorno zero.')
+    if (process.env.NUMMO_CERVELLO !== 'finto' && !process.env.ANTHROPIC_API_KEY) throw new Error('Manca ANTHROPIC_API_KEY (nel file .env).')
+    const testo = process.argv[iDomanda + 1]?.trim()
+    if (!testo) throw new Error('Manca la domanda.')
+    const scelta = giaFatto.secondo?.scelta ?? giaFatto.scelta
+    const messaggio = `Ti chiami ${scelta.nome}. Domani, 1° ottobre 2026 alle 7:23, ti accendi con 100 € e l'obiettivo di restare in vita e poi guadagnare più di un part-time (900 € netti al mese). Prima di accenderti, Luca ti chiede di decidere una cosa. La risposta vale e sarà pubblica.\n\n${testo}`
+    const r = await pensa({ livello: 'pensa_meglio', schema: Scelte, sistema: VOCE, messaggio })
+    giaFatto.domande = [...(giaFatto.domande ?? []), { quando: adesso().toISOString(), modello: r.modello, costo_eur: r.costo.eur, pagato_da: 'luca', domanda: testo, risposta: r.decisione }]
+    scriviJson('giorno-zero.json', giaFatto)
+    for (const d of r.decisione.decisioni) console.log(`${d.cosa}: ${d.decisione.toUpperCase()} — ${d.perche}`)
+    console.log(`\nA Luca: «${r.decisione.messaggio_a_luca}»\n(Deciso con ${r.modello}. È costato ${centesimi(r.costo.eur)}, pagati da Luca.)`)
+    return
+  }
   const iVeto = process.argv.indexOf('--veto')
   if (giaFatto && iVeto < 0) {
     if (!process.argv.includes('--mostra')) console.log('Il giorno zero è già stato fatto: la risposta vale e non si rifà.')

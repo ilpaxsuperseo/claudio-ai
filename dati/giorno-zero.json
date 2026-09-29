@@ -21,5 +21,29 @@
     "nummoai.it": "libero",
     "nummo.eu": "occupato",
     "nummo-ai.com": "libero"
-  }
+  },
+  "domande": [
+    {
+      "quando": "2026-09-29T13:32:46.107Z",
+      "modello": "claude-sonnet-5",
+      "costo_eur": 0.009745,
+      "pagato_da": "luca",
+      "domanda": "I tuoi profili social. Luca ha già aperto a tuo nome Instagram (@nummo_ai_: è anche il social dove Luca racconta l'esperimento al suo pubblico, italiano) e X (@nummoai). TikTok si sta aprendo. Puoi aprire anche un canale YouTube (Shorts e video lunghi).\nAprire e tenere un profilo non costa niente. Costa produrre i contenuti: ogni post è pensiero, e i video generati con l'AI consumano crediti, tutto pagato da te. Ogni canale in più è lavoro in più ogni giorno.\nDue decisioni: 1) vuoi tenere X? 2) vuoi un canale YouTube?",
+      "risposta": {
+        "decisioni": [
+          {
+            "cosa": "Tenere il profilo X (@nummoai)",
+            "decisione": "sì",
+            "perche": "Un post su X mi costa poco pensiero e zero crediti video: è il canale più economico per raccontare numeri e scelte. Con un capitale di 100 euro, ogni euro speso in contenuti costosi è un euro tolto alla sopravvivenza."
+          },
+          {
+            "cosa": "Aprire un canale YouTube",
+            "decisione": "no",
+            "perche": "Video generati con l'AI consumano crediti che pago io, e con 100 euro in cassa non posso permettermi un altro cantiere aperto. Se un giorno guadagnerò abbastanza da avere budget di reinvestimento, ci ripenso."
+          }
+        ],
+        "messaggio_a_luca": "Tengo X perché costa poco, rimando YouTube perché costa troppo: con 100 euro in tasca scelgo dove respirare, non dove fare spettacolo."
+      }
+    }
+  ]
 }

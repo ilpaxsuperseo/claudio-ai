@@ -80,6 +80,16 @@ export const NomeDiNuovo = Nome.extend({
   altri_nomi: z.array(z.string()).describe('Altri due nomi in ordine di preferenza, ciascuno col suo dominio, scritti come "Nome (dominio)".'),
 })
 
+// Una domanda prima di nascere: una o più scelte sì/no, ciascuna col suo perché.
+export const Scelte = z.object({
+  decisioni: z.array(z.object({
+    cosa: z.string().describe('Di cosa si tratta, in poche parole.'),
+    decisione: z.enum(['sì', 'no']),
+    perche: z.string().describe('Perché, in rapporto ai tuoi obiettivi. Due o tre frasi.'),
+  })),
+  messaggio_a_luca: z.string().describe('Cosa vuoi dire a Luca, in una o due frasi.'),
+})
+
 // La risposta in chat, quando Luca gli parla con /nummo.
 export const Risposta = z.object({
   risposta: z.string().describe('Cosa rispondi a Luca, in prima persona. Breve: ogni parola ti costa.'),
@@ -168,6 +178,8 @@ export async function ricerca(domanda) {
 // Per le prove: nessuna chiamata, nessun costo vero, ma lo stesso giro completo.
 async function pensaFinto({ livello, modello, messaggio, schema }) {
   const uso = { input_tokens: Math.round(messaggio.length / 3.5) + 1500, output_tokens: 700 }
+  if (schema === Scelte)
+    return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { decisioni: [{ cosa: 'prova', decisione: 'sì', perche: 'Risposta di prova.' }], messaggio_a_luca: 'Prova.' } }
   if (schema === Nome || schema === NomeDiNuovo)
     return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { nome: 'Nummo', dominio: 'nummo.it', alternative: ['nummoai.it', 'nummo-ai.com'], perche: 'Risposta di prova del cervello finto.', messaggio_a_luca: 'Prova.', altri_nomi: ['Prova (prova.it)'] } }
   if (schema === Racconto)
