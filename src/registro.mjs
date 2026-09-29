@@ -18,8 +18,9 @@ export const TIPI = {
   morte: 0,               // riga senza soldi: da qui in poi Claudio è spento, per sempre
 }
 
-// Il respiro del mattino; quello della sera (respiro_extra) lo paga Claudio.
-export const PENSIERO = ['respiro', 'respiro_extra', 'cervello']
+// Il respiro del mattino; quello della sera (respiro_extra) e le chiacchierate con Luca
+// (conversazione) le paga Claudio.
+export const PENSIERO = ['respiro', 'respiro_extra', 'cervello', 'conversazione']
 
 const impronta = (voce) => crypto.createHash('sha256').update(JSON.stringify(voce)).digest('hex')
 const micro = (eur) => Math.round(eur * 1e6)

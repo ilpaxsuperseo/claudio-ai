@@ -63,6 +63,7 @@ function costruisci() {
   const diario = leggiJsonl('diario.jsonl').filter((d) => d.decisione)
   const oggi = diario.at(-1)
   const richieste = leggiJson('richieste.json', [])
+  const chiacchierate = leggiJsonl('conversazioni.jsonl')
   const memoria = leggiJson('memoria.json', { strategia: '', lezioni: [] })
   const cost = YAML.parse(costituzioneTesto)
   const seme = tutte.at(-1)?.hash ?? '0'
@@ -85,7 +86,7 @@ function costruisci() {
   for (const f of fs.readdirSync(path.join(RADICE, 'caratteri')).filter((f) => f.endsWith('.woff2')))
     fs.copyFileSync(path.join(RADICE, 'caratteri', f), path.join(USCITA, 'caratteri', f))
   fs.mkdirSync(path.join(USCITA, 'dati'))
-  for (const f of ['registro.jsonl', 'diario.jsonl']) if (fs.existsSync(path.join(DATI, f))) fs.copyFileSync(path.join(DATI, f), path.join(USCITA, 'dati', f))
+  for (const f of ['registro.jsonl', 'diario.jsonl', 'conversazioni.jsonl']) if (fs.existsSync(path.join(DATI, f))) fs.copyFileSync(path.join(DATI, f), path.join(USCITA, 'dati', f))
   fs.copyFileSync(path.join(RADICE, 'costituzione.yaml'), path.join(USCITA, 'dati', 'costituzione.yaml'))
   if (process.env.CLAUDIO_DOMINIO !== 'no') fs.writeFileSync(path.join(USCITA, 'CNAME'), 'claudioai.it\n')
 
@@ -249,6 +250,15 @@ td.impronta { color: var(--medio); font-size: .85rem; }
       <ul class="giorni">
         ${diario.slice(0, -1).reverse().map((d) => `<li><details><summary><strong>Giorno ${d.giorno}${d.ciclo === 'sera' ? ', sera' : ''}</strong><span>${xml(d.decisione)}</span></summary>
           <div class="corpo leggibile">${d.post ? paragrafi(d.post) : ''}${paragrafi(d.motivo)}<p class="nota">${eurItaliani(d.cassa ?? 0)} euro in cassa. Pensarci è costato ${xml(centesimi(d.costo_eur))}.</p></div></details></li>`).join('')}
+      </ul>
+    </section>` : ''}
+
+    ${chiacchierate.length ? `<section id="chiacchierate" aria-labelledby="t-chiacchierate">
+      <h2 id="t-chiacchierate">Le chiacchierate con Luca</h2>
+      <p class="leggibile">Luca può scrivermi quando vuole. Ogni risposta la pago io, quindi rispondo breve.</p>
+      <ul class="giorni">
+        ${chiacchierate.slice(-12).reverse().map((x) => `<li><details><summary><strong>Giorno ${x.giorno}, ${ora(x.quando)}</strong><span>${xml(x.luca.length > 90 ? x.luca.slice(0, 90) + '…' : x.luca)}</span></summary>
+          <div class="corpo leggibile"><p class="nota">Luca</p>${paragrafi(x.luca)}<p class="nota">Io</p>${paragrafi(x.claudio)}<p class="nota">Rispondere mi è costato ${xml(centesimi(x.costo_eur))}.</p></div></details></li>`).join('')}
       </ul>
     </section>` : ''}
 

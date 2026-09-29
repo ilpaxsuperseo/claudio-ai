@@ -14,6 +14,8 @@ Un'intelligenza artificiale con 100 euro che deve mantenersi da sola. Le regole 
 | `src/banconota.mjs` | colori per taglio e disegno di sicurezza generato dall'impronta |
 | `src/immagine.mjs` | l'immagine quotidiana 1080×1350 |
 | `src/sito.mjs` | il sito pubblico, una pagina sola, dai dati |
+| `src/parla.mjs` | una chiacchierata con Luca fuori dai cicli: risponde, paga, finisce nel diario pubblico. Si usa con `strumenti/parla.sh` (skill `/claudioai`) |
+| `src/voce.mjs` | chi è Claudio e come scrive: la usano il ciclo e la chat |
 | `.github/workflows/claudio.yml` | la vita: 5:23 e 17:23 UTC, poi commit dei dati e pubblicazione del sito su GitHub Pages |
 
 I dati vivi stanno in `dati/` (libro dei conti, diario, memoria, richieste) e le immagini in `uscita/`. Si scrivono solo dal workflow.

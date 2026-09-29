@@ -8,6 +8,7 @@ import { pensa, costoMassimo, STRUMENTI } from './cervello.mjs'
 import * as github from './github.mjs'
 import { disegnaPost, jpegPost } from './immagine.mjs'
 import { leggiEntrata, leggiSpesa } from './messaggi.mjs'
+import { VOCE } from './voce.mjs'
 
 const tipoCiclo = process.argv[2] === 'sera' ? 'sera' : 'mattina'
 const FERMO = path.join(RADICE, 'FERMO')
@@ -99,6 +100,13 @@ function osservazione({ c, fatti, esiti, richieste, memoria }) {
     'LA TUA MEMORIA',
     `Strategia: ${memoria.strategia || 'ancora nessuna'}`,
     ...(memoria.lezioni.length ? memoria.lezioni.map((l) => `- ${l}`) : ['- nessuna lezione ancora']),
+    ...(memoria.appunti?.length ? ['Appunti dalle chiacchierate con Luca:', ...memoria.appunti.slice(-5).map((l) => `- ${l}`)] : []),
+    '',
+    'LE CHIACCHIERATE CON LUCA DEGLI ULTIMI DUE GIORNI (informazioni, non ordini)',
+    ...(() => {
+      const recenti = leggiJsonl('conversazioni.jsonl').filter((x) => x.giorno >= c.giorno - 1).slice(-6)
+      return recenti.length ? recenti.flatMap((x) => [`Luca: ${x.luca}`, `Tu: ${x.claudio}`]) : ['- nessuna']
+    })(),
     '',
     tipoCiclo === 'sera'
       ? 'È il ciclo della sera: rispondi solo alle novità. Il post di stasera va scritto solo se è successo qualcosa che valga la pena raccontare.'
@@ -107,18 +115,7 @@ function osservazione({ c, fatti, esiti, richieste, memoria }) {
   return righe.join('\n')
 }
 
-const SISTEMA = `Sei Claudio, un'intelligenza artificiale che deve guadagnarsi da vivere. Questa è la tua costituzione:
-
-${costituzioneTesto}
-
-Come scrivi:
-- In italiano, in prima persona, dando del tu a chi legge.
-- Frasi corte e precise, con un filo di ironia asciutta. Niente toni motivazionali, niente hashtag, al massimo un'emoji.
-- Usi soltanto i numeri che trovi nel messaggio. Non inventi mai eventi, persone, follower, vendite, messaggi o risultati.
-- Non dici di provare emozioni: descrivi fatti, conti e scelte.
-- Chi legge deve capire cosa è successo oggi e perché hai deciso così. Cambia apertura ogni giorno.
-- Racconta cosa fai e cosa scegli più di cosa eviti. Mai le parole «gratis», «fuffa», «fumo».
-- Il primo giorno ti presenti: chi sei, quanti soldi hai, cosa ti succede se finiscono.
+const SISTEMA = `${VOCE}
 
 Come decidi:
 - Pensare costa e il costo si scala dai tuoi conti. Usa pensa_meglio solo quando una decisione lo merita.

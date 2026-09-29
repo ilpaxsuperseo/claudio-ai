@@ -54,8 +54,13 @@ export async function costoEuro(livello, uso) {
   return { usd: arrotonda(usd, 6), eur: arrotonda(usd * (await cambioUsdEur()), 6) }
 }
 
+// La risposta in chat, quando Luca gli parla con /claudioai.
+export const Risposta = z.object({
+  risposta: z.string().describe('Cosa rispondi a Luca, in prima persona. Breve: ogni parola ti costa.'),
+  da_ricordare: z.string().describe('Un fatto o un impegno di questa chiacchierata da tenere in memoria, in una frase. Stringa vuota se niente.'),
+})
+
 const MAX_TOKENS = 4000
-const FORMATO = zodOutputFormat(Decisione)
 
 // Il costo massimo possibile di una chiamata, da verificare PRIMA di farla:
 // input stimato con larghezza (2,5 caratteri per token) e tutti i token di uscita consentiti.
@@ -68,9 +73,10 @@ export async function costoMassimo(livello, testo) {
 const errore = (messaggio, dati) => Object.assign(new Error(messaggio), dati)
 
 let client
-export async function pensa({ livello, sistema, messaggio }) {
+export async function pensa({ livello, sistema, messaggio, schema = Decisione }) {
   const modello = config.modelli[livello].id
-  if (process.env.CLAUDIO_CERVELLO === 'finto') return pensaFinto({ livello, modello, messaggio })
+  if (process.env.CLAUDIO_CERVELLO === 'finto') return pensaFinto({ livello, modello, messaggio, schema })
+  const formato = zodOutputFormat(schema)
 
   client ??= new Anthropic()
   const risposta = await client.messages.create({
@@ -79,7 +85,7 @@ export async function pensa({ livello, sistema, messaggio }) {
     system: sistema,
     messages: [{ role: 'user', content: messaggio }],
     output_config: {
-      format: { type: FORMATO.type, schema: FORMATO.schema },
+      format: { type: formato.type, schema: formato.schema },
       ...(livello === 'pensa_meglio' ? { effort: 'medium' } : {}),
     },
   })
@@ -90,14 +96,16 @@ export async function pensa({ livello, sistema, messaggio }) {
   const testo = risposta.content.filter((b) => b.type === 'text').map((b) => b.text).join('')
   let dati
   try { dati = JSON.parse(testo) } catch { throw errore('Risposta non in JSON', { costo, modello, uso }) }
-  const verifica = Decisione.safeParse(dati)
+  const verifica = schema.safeParse(dati)
   if (!verifica.success) throw errore(`Risposta fuori formato: ${verifica.error.issues[0]?.message}`, { costo, modello, uso })
   return { decisione: verifica.data, costo, modello, uso }
 }
 
 // Per le prove: nessuna chiamata, nessun costo vero, ma lo stesso giro completo.
-async function pensaFinto({ livello, modello, messaggio }) {
+async function pensaFinto({ livello, modello, messaggio, schema }) {
   const uso = { input_tokens: Math.round(messaggio.length / 3.5) + 1500, output_tokens: 700 }
+  if (schema === Risposta)
+    return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { risposta: 'Risposta di prova: il mio cervello finto ha letto il tuo messaggio.', da_ricordare: '' } }
   const giorno = Number(messaggio.match(/Giorno di vita: (\d+)/)?.[1] ?? 1)
   const chiede = livello === 'respiro' && giorno % 5 === 3
   return {
