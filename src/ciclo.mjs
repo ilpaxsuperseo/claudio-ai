@@ -219,7 +219,8 @@ async function main() {
   // Il mattino non si ripete: se c'è già nel diario, o c'è un suo costo nel libro (un ciclo interrotto
   // a metà), non riparte da solo. Per rifarlo davvero serve NUMMO_ANCORA.
   if (tipoCiclo === 'mattina' && !process.env.NUMMO_ANCORA) {
-    const fatto = leggiJsonl('diario.jsonl').some((d) => d.data === dataLocale() && d.ciclo === 'mattina') || giaRegistrato(rif)
+    // Un errore senza costi (API irraggiungibile) non blocca: si riprova. Uno con costi sì, per non pagare due volte.
+    const fatto = leggiJsonl('diario.jsonl').some((d) => d.data === dataLocale() && d.ciclo === 'mattina' && !d.errore) || giaRegistrato(rif)
     if (fatto) return fine(richiesto === 'mattina' ? 'Il risveglio del mattino di oggi è già fatto.' : 'Mattino interrotto a metà: non riparto da solo (serve NUMMO_ANCORA).', false)
   }
 

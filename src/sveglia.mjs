@@ -66,7 +66,8 @@ export const spegni = () => scriviJson('sveglia.json', { prossima: null })
 // Il risveglio del mattino è dovuto se sono passate le 7:23 italiane e oggi non c'è ancora stato.
 export function mattinaDovuta(ora = adesso()) {
   if (oraLocale(ora) < S().mattina) return false
-  return !leggiJsonl('diario.jsonl').some((d) => d.data === dataLocale(ora) && d.ciclo === 'mattina')
+  // Un tentativo finito in errore senza costi non conta: si riprova al controllo dell'ora dopo.
+  return !leggiJsonl('diario.jsonl').some((d) => d.data === dataLocale(ora) && d.ciclo === 'mattina' && !d.errore)
 }
 
 // I risvegli in più già fatti oggi (quelli in cui ha ragionato).

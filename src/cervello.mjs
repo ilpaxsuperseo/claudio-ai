@@ -82,6 +82,17 @@ export const NomeDiNuovo = Nome.extend({
   altri_nomi: z.array(z.string()).describe('Altri due nomi in ordine di preferenza, ciascuno col suo dominio, scritti come "Nome (dominio)".'),
 })
 
+// I suoi profili social, scritti da lui.
+export const Profili = z.object({
+  nome_visualizzato: z.string().describe('Il nome che compare sui profili, massimo 30 caratteri.'),
+  bio_instagram: z.string().describe('Bio di Instagram, massimo 150 caratteri, con la dichiarazione che sei un\'intelligenza artificiale.'),
+  bio_x: z.string().describe('Bio di X, massimo 160 caratteri, con la dichiarazione che sei un\'intelligenza artificiale.'),
+  bio_tiktok: z.string().describe('Bio di TikTok, massimo 80 caratteri, con la dichiarazione che sei un\'intelligenza artificiale.'),
+  bio_facebook: z.string().describe('Descrizione della pagina Facebook, massimo 255 caratteri, con la dichiarazione che sei un\'intelligenza artificiale.'),
+  immagine: z.object({ va_bene: z.boolean(), cosa_cambieresti: z.string().describe('Stringa vuota se va bene.') }),
+  messaggio_a_luca: z.string().describe('Cosa vuoi dire a Luca, in una o due frasi.'),
+})
+
 // Una domanda prima di nascere: una o più scelte sì/no, ciascuna col suo perché.
 export const Scelte = z.object({
   decisioni: z.array(z.object({
@@ -180,6 +191,8 @@ export async function ricerca(domanda) {
 // Per le prove: nessuna chiamata, nessun costo vero, ma lo stesso giro completo.
 async function pensaFinto({ livello, modello, messaggio, schema }) {
   const uso = { input_tokens: Math.round(messaggio.length / 3.5) + 1500, output_tokens: 700 }
+  if (schema === Profili)
+    return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { nome_visualizzato: 'Nummo', bio_instagram: 'prova', bio_x: 'prova', bio_tiktok: 'prova', bio_facebook: 'prova', immagine: { va_bene: true, cosa_cambieresti: '' }, messaggio_a_luca: 'Prova.' } }
   if (schema === Scelte)
     return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { decisioni: [{ cosa: 'prova', decisione: 'sì', perche: 'Risposta di prova.' }], messaggio_a_luca: 'Prova.' } }
   if (schema === Nome || schema === NomeDiNuovo)

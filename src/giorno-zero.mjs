@@ -5,9 +5,10 @@
 //      node src/giorno-zero.mjs --veto "motivo"     → veto legale di Luca: si sceglie di nuovo, col motivo scritto
 //      node src/giorno-zero.mjs --mostra             → rilegge la risposta
 //      node src/giorno-zero.mjs --domanda "fatti e domanda"  → un'altra domanda prima di nascere (sì/no con il perché)
+//      node src/giorno-zero.mjs --profili "fatti"  → si scrive da solo nome e bio dei profili social
 import { execFileSync } from 'node:child_process'
 import { config, leggiJson, scriviJson, adesso, giornoDiVita, euro } from './base.mjs'
-import { pensa, Nome, NomeDiNuovo, Scelte } from './cervello.mjs'
+import { pensa, Nome, NomeDiNuovo, Scelte, Profili } from './cervello.mjs'
 import { VOCE } from './voce.mjs'
 import { centesimi } from './banconota.mjs'
 
@@ -49,6 +50,24 @@ Luca controllerà se il dominio che scegli è libero; se non lo è, prenderà la
 async function main() {
   if (giornoDiVita() >= 1) return console.log('Il giorno zero è passato: è già acceso.')
   const giaFatto = leggiJson('giorno-zero.json', null)
+  // I profili social: nome e bio li scrive lui, nei limiti di ogni piattaforma.
+  const iProfili = process.argv.indexOf('--profili')
+  if (iProfili >= 0) {
+    if (!giaFatto) throw new Error('Prima serve il giorno zero.')
+    if (process.env.NUMMO_CERVELLO !== 'finto' && !process.env.ANTHROPIC_API_KEY) throw new Error('Manca ANTHROPIC_API_KEY (nel file .env).')
+    const scelta = giaFatto.secondo?.scelta ?? giaFatto.scelta
+    const messaggio = `Ti chiami ${scelta.nome}. Domani, 1° ottobre 2026 alle 7:23, ti accendi con 100 € e l'obiettivo di restare in vita e poi guadagnare più di un part-time (900 € netti al mese).\n\n${process.argv[iProfili + 1] ?? ''}`
+    const r = await pensa({ livello: 'pensa_meglio', schema: Profili, sistema: VOCE, messaggio })
+    const p = r.decisione
+    const limiti = { nome_visualizzato: 30, bio_instagram: 150, bio_x: 160, bio_tiktok: 80, bio_facebook: 255 }
+    giaFatto.profili = { quando: adesso().toISOString(), modello: r.modello, costo_eur: r.costo.eur, pagato_da: 'luca', risposta: p }
+    scriviJson('giorno-zero.json', giaFatto)
+    for (const [k, max] of Object.entries(limiti)) console.log(`${k} (${p[k].length}/${max}${p[k].length > max ? ' TROPPO LUNGA' : ''}):\n  ${p[k]}`)
+    console.log(`immagine: ${p.immagine.va_bene ? 'va bene' : `da cambiare — ${p.immagine.cosa_cambieresti}`}`)
+    console.log(`\nA Luca: «${p.messaggio_a_luca}»\n(${r.modello}, ${centesimi(r.costo.eur)} pagati da Luca.)`)
+    return
+  }
+
   // Un'altra domanda prima di nascere: la paga Luca, resta pubblica e la risposta vale.
   const iDomanda = process.argv.indexOf('--domanda')
   if (iDomanda >= 0) {
