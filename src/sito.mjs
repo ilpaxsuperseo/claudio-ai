@@ -186,7 +186,7 @@ td.impronta { color: var(--medio); font-size: .85rem; }
 // Il piè di pagina obbligatorio: su ogni pagina del sito, qualunque cosa Nummo costruisca,
 // c'è la dichiarazione e il link al diario. Lo mette il codice: Nummo non lo può togliere.
 const piede = (radice = '') => `<footer class="piede">
-    <p>Sono Nummo, un'intelligenza artificiale: questo sito è un esperimento pubblico. Ho ricevuto 100 euro e devo mantenermi da solo.</p>
+    <p>Sono Nummo, un'intelligenza artificiale: questo sito è un esperimento pubblico. Ho ricevuto 100 euro e devo mantenermi da solo.${TRACCIAMENTO ? ' Conto le visite con Metricool, senza cookie.' : ''}</p>
     <nav class="piede-link" aria-label="L'esperimento"><a href="${radice}diario/">Il diario</a><a href="${radice}${CONTI}#conti">I conti</a><a href="${radice}${CONTI}#regole">Le regole</a><a href="${radice}${CONTI}#dietro">Chi c'è dietro</a>${profili().map((p) => `<a href="${p.url}" rel="me noopener">${p.nome} @${xml(p.utente)}</a>`).join('')}</nav>
   </footer>`
 
@@ -214,6 +214,10 @@ const INDIRIZZI_SOCIAL = { instagram: (u) => `https://www.instagram.com/${u}/`, 
 const NOMI_SOCIAL = { instagram: 'Instagram', x: 'X', threads: 'Threads', tiktok: 'TikTok' }
 const profili = () => Object.entries(config.social ?? {}).filter(([, u]) => u).map(([rete, u]) => ({ rete, nome: NOMI_SOCIAL[rete], utente: u, url: INDIRIZZI_SOCIAL[rete](u) }))
 
+// Il contatore delle visite di Metricool (senza cookie): solo se l'ha acceso Nummo.
+let TRACCIAMENTO = ''
+const conTracciamento = (html) => TRACCIAMENTO && html.includes('</head>') ? html.replace('</head>', `${TRACCIAMENTO}\n</head>`) : html
+
 const slugArticolo = (d) => `giorno-${d.giorno}`
 // I risvegli in più di una giornata: note dentro l'articolo di quel giorno.
 const notePiuTardi = (note, d) => {
@@ -238,6 +242,10 @@ function costruisci() {
   const oggi = diario.at(-1)
   const richieste = leggiJson('richieste.json', [])
   const chiacchierate = leggiJsonl('conversazioni.jsonl')
+  const hash = config.metricool?.hash_tracciamento
+  TRACCIAMENTO = leggiJson('sito.json', {}).tracciamento && /^[a-f0-9]{32}$/.test(hash ?? '')
+    ? `<script>function loadScript(a){var b=document.getElementsByTagName("head")[0],c=document.createElement("script");c.type="text/javascript",c.src="https://tracker.metricool.com/resources/be.js",c.onreadystatechange=a,c.onload=a,b.appendChild(c)}loadScript(function(){beTracker.t({hash:"${hash}"})});</script>`
+    : ''
   const haHome = fs.existsSync(path.join(CASA_SITO, 'index.html'))
   CONTI = haHome ? 'conti/' : ''
   const tr = traguardo(tutte)
@@ -446,9 +454,9 @@ document.documentElement.classList.add('stampa')
   if (haHome) {
     // La home è di Nummo: il cruscotto va in /conti/ e risolve gli indirizzi dalla radice.
     fs.mkdirSync(path.join(USCITA, 'conti'), { recursive: true })
-    fs.writeFileSync(path.join(USCITA, 'conti', 'index.html'), html.replace('<head>', '<head>\n<base href="../">'))
+    fs.writeFileSync(path.join(USCITA, 'conti', 'index.html'), conTracciamento(html.replace('<head>', '<head>\n<base href="../">')))
   } else {
-    fs.writeFileSync(path.join(USCITA, 'index.html'), html)
+    fs.writeFileSync(path.join(USCITA, 'index.html'), conTracciamento(html))
   }
   // Il diario: un indice e un articolo per ogni giornata.
   const testaPagina = (titolo, descrizione, radice) => `<!doctype html>
@@ -468,7 +476,7 @@ document.documentElement.classList.add('stampa')
     <div class="quando"><strong>${eurItaliani(c.cassa)} €</strong>in cassa, giorno ${c.giorno}</div>
   </header>`
   fs.mkdirSync(path.join(USCITA, 'diario'), { recursive: true })
-  fs.writeFileSync(path.join(USCITA, 'diario', 'index.html'), `${testaPagina('Il diario di Nummo', 'Ogni giorno Nummo, un\'intelligenza artificiale con 100 euro, racconta cosa ha fatto, cosa ha deciso e cosa pensa.', '../')}
+  fs.writeFileSync(path.join(USCITA, 'diario', 'index.html'), conTracciamento(`${testaPagina('Il diario di Nummo', 'Ogni giorno Nummo, un\'intelligenza artificiale con 100 euro, racconta cosa ha fatto, cosa ha deciso e cosa pensa.', '../')}
   <main class="scritta leggibile">
     <h1>Il diario</h1>
     <p>Ogni giorno scrivo cosa ho fatto, cosa ho deciso e cosa penso. Scrivere il diario lo paga Luca: raccontare l'esperimento è compito suo, e non conta nei miei conti.</p>
@@ -477,13 +485,13 @@ document.documentElement.classList.add('stampa')
   ${piede('../')}
 </div>
 </body>
-</html>`)
+</html>`))
   diario.forEach((d, i) => {
     const slug = slugArticolo(d)
     const img = immagini[d.uscita ?? d.data]
     const prima = diario[i - 1], dopo = diario[i + 1]
     fs.mkdirSync(path.join(USCITA, 'diario', slug), { recursive: true })
-    fs.writeFileSync(path.join(USCITA, 'diario', slug, 'index.html'), `${testaPagina(`${d.titolo || d.decisione} — il diario di Nummo`, d.frase || d.decisione, '../../')}
+    fs.writeFileSync(path.join(USCITA, 'diario', slug, 'index.html'), conTracciamento(`${testaPagina(`${d.titolo || d.decisione} — il diario di Nummo`, d.frase || d.decisione, '../../')}
   <main class="scritta leggibile">
     <p class="nota">Giorno ${d.giorno}, ${xml(dataLunga(d.quando))}</p>
     ${d.titolo ? `<h1>${xml(d.titolo)}</h1>` : ''}
@@ -502,12 +510,12 @@ document.documentElement.classList.add('stampa')
   ${piede('../../')}
 </div>
 </body>
-</html>`)
+</html>`))
   })
 
   for (const p of pagine) {
     fs.mkdirSync(path.join(USCITA, p.percorso), { recursive: true })
-    fs.writeFileSync(path.join(USCITA, p.percorso, 'index.html'), `<!doctype html>
+    fs.writeFileSync(path.join(USCITA, p.percorso, 'index.html'), conTracciamento(`<!doctype html>
 <html lang="it">
 <head>
 <meta charset="utf-8">
@@ -527,7 +535,7 @@ document.documentElement.classList.add('stampa')
   ${piede('../')}
 </div>
 </body>
-</html>`)
+</html>`))
   }
   if (fs.existsSync(CASA_SITO)) {
     let copiati = 0
@@ -535,7 +543,7 @@ document.documentElement.classList.add('stampa')
       if (RISERVATI_SITO.has(rel.split(path.sep)[0])) { console.log(`Saltato ${rel}: è un indirizzo dell'esperimento`); continue }
       const dest = path.join(USCITA, rel)
       fs.mkdirSync(path.dirname(dest), { recursive: true })
-      if (rel.endsWith('.html')) fs.writeFileSync(dest, inserisciPiede(fs.readFileSync(path.join(CASA_SITO, rel), 'utf8'), '../'.repeat(rel.split(path.sep).length - 1)))
+      if (rel.endsWith('.html')) fs.writeFileSync(dest, conTracciamento(inserisciPiede(fs.readFileSync(path.join(CASA_SITO, rel), 'utf8'), '../'.repeat(rel.split(path.sep).length - 1))))
       else fs.copyFileSync(path.join(CASA_SITO, rel), dest)
       copiati++
     }

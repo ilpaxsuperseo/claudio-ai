@@ -325,6 +325,10 @@ async function main() {
       esitiAzioni.push({ ...a, esito: nuova.issue || !github.collegato ? `richiesta ${id} inviata` : `richiesta ${id} registrata, issue non aperta` })
     } else if (a.strumento === 'lavoro_notturno') {
       esitiAzioni.push({ ...a, esito: ordinaLavoro(a.dettagli, a.importo_eur, c.giorno) })
+    } else if (a.strumento === 'statistiche_sito') {
+      const accendi = /accend|attiv|s[iì]\b/i.test(a.dettagli) && !/spegn|disattiv/i.test(a.dettagli)
+      scriviJson('sito.json', { ...leggiJson('sito.json', {}), tracciamento: accendi, cambiato: adesso().toISOString() })
+      esitiAzioni.push({ ...a, esito: accendi ? 'contatore delle visite acceso' : 'contatore delle visite spento' })
     } else if (a.strumento === 'sveglia') {
       esitiAzioni.push({ ...a, esito: sveglia.imposta(a.dettagli, a.dettagli) })
     } else if (a.strumento === 'scrivi_pagina') {

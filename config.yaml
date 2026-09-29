@@ -75,6 +75,8 @@ sito: https://nummo.it
 metricool:
   user_id: '4937673'
   blog_id: '7149621'
+  # Il contatore delle visite del sito (senza cookie). Lo accende o spegne Nummo con lo strumento statistiche_sito.
+  hash_tracciamento: '1a9de10c94e190280cbd5e9fcb4d79cd'
   # Le reti su cui esce il post del giorno (X e Threads quando saranno collegati al brand).
   reti: [instagram, facebook, tiktok]
 
