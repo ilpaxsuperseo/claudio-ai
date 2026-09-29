@@ -18,6 +18,12 @@ modelli:
     input_usd: 2.00
     output_usd: 10.00
 
+# Lo strumento «cerca»: ricerca web lato server (10 $ ogni 1.000 ricerche) col modello di pensa_meglio.
+ricerca:
+  prezzo_ricerca_usd: 0.01
+  max_ricerche: 3
+  costo_massimo_eur: 0.25   # tetto prudente da verificare prima di cercare
+
 # Cambio dollaro/euro: si aggiorna da solo dalla BCE a ogni ciclo; questo è il valore di riserva.
 cambio_usd_eur_riserva: 0.88
 

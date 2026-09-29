@@ -6,7 +6,7 @@ import path from 'node:path'
 import { RADICE, config, costituzioneTesto, leggiJsonl, aggiungiJsonl, leggiJson, scriviJson, adesso, dataLocale, giornoDiVita, inSostegno, euro, arrotonda } from './base.mjs'
 import { voci, registra, registraCosto, conti, giaRegistrato, puoPagare, traguardo } from './registro.mjs'
 import { scriviPagina, elencoPagine } from './pagine.mjs'
-import { pensa, costoMassimo, STRUMENTI, Racconto } from './cervello.mjs'
+import { pensa, costoMassimo, ricerca, STRUMENTI, Racconto } from './cervello.mjs'
 import * as github from './github.mjs'
 import { disegnaPost, jpegPost } from './immagine.mjs'
 import { leggiEntrata, leggiSpesa } from './messaggi.mjs'
@@ -232,6 +232,36 @@ async function main() {
   let d = r.decisione
   let modello = r.modello
 
+  // Cercare: la ricerca web la paga Nummo; poi decide di nuovo con i risultati davanti.
+  let fattaRicerca = null
+  const richiestaRicerca = d.azioni.find((a) => a.strumento === 'cerca')
+  if (richiestaRicerca) {
+    d.azioni = d.azioni.filter((a) => a.strumento !== 'cerca')
+    const tetto = config.ricerca?.costo_massimo_eur ?? 0.25
+    if (!puoPagare('cervello', tetto)) {
+      d.motivo += ` (Volevo cercare «${richiestaRicerca.dettagli}», ma una ricerca può costare fino a ${euro(tetto)} e non li ho.)`
+    } else {
+      try {
+        const res = await ricerca(richiestaRicerca.dettagli)
+        registraCosto({ categoria: 'cervello', importo_eur: res.costo.eur, descrizione: `Ricerca (${res.modello}, ${res.uso.ricerche} ricerche): ${richiestaRicerca.dettagli.slice(0, 120)}`, rif, giaSostenuto: true })
+        costoTotale += res.costo.eur
+        fattaRicerca = { domanda: richiestaRicerca.dettagli, risposta: res.testo, fonti: res.fonti, costo_eur: arrotonda(res.costo.eur, 6) }
+        const testoDopo = `${messaggio}\n\nHAI CERCATO: ${fattaRicerca.domanda}\nRISULTATI:\n${res.testo}\nFONTI: ${res.fonti.join(' ') || 'nessuna'}\n\nOra decidi, con questi risultati davanti. Questa volta niente cerca e niente pensa_meglio.`
+        const r2 = await pensa({ livello: 'respiro', sistema: SISTEMA, messaggio: testoDopo })
+        registraCosto({ categoria: 'cervello', importo_eur: r2.costo.eur, descrizione: `Decisione dopo la ricerca (${r2.modello}, ${r2.uso.input_tokens}+${r2.uso.output_tokens} token)`, rif, giaSostenuto: true })
+        costoTotale += r2.costo.eur
+        d = { ...r2.decisione, azioni: r2.decisione.azioni.filter((a) => !['cerca', 'pensa_meglio'].includes(a.strumento)) }
+        modello = `${r.modello} → ricerca ${res.modello} → ${r2.modello}`
+      } catch (e) {
+        if (e.costo) {
+          registraCosto({ categoria: 'cervello', importo_eur: e.costo.eur, descrizione: `Ricerca non riuscita (${e.modello}): ${e.message}`, rif, giaSostenuto: true })
+          costoTotale += e.costo.eur
+        }
+        d.motivo += ` (Ho provato a cercare «${richiestaRicerca.dettagli}», ma la ricerca non è riuscita: ${e.message}.)`
+      }
+    }
+  }
+
   // Pensare meglio: una seconda chiamata a un modello più capace, a spese di Nummo.
   const domanda = d.azioni.find((a) => a.strumento === 'pensa_meglio')
   if (domanda) {
@@ -302,6 +332,7 @@ async function main() {
         `Perché: ${d.motivo}`,
         `Cosa hai fatto: ${esitiAzioni.map((a) => `${a.strumento} (${a.esito})`).join('; ') || 'niente'}`,
         d.lezione ? `Cosa hai imparato: ${d.lezione}` : '',
+        fattaRicerca ? `Hai cercato sul web «${fattaRicerca.domanda}» e hai trovato: ${fattaRicerca.risposta}` : '',
         notizie().length ? `Novità da Luca: ${notizie().map((n) => n.testo).join('; ')}` : '',
       ].filter(Boolean).join('\n')
       const r3 = await pensa({
@@ -322,6 +353,7 @@ async function main() {
   const uscita = racconto?.post ? dataLocale() : null
   registraDiario({
     stato: dopo.stato, cassa: dopo.cassa, modello, costo_eur: arrotonda(costoTotale, 6), costo_diario_eur: arrotonda(costoRacconto, 6),
+    ricerca: fattaRicerca ?? undefined,
     risveglio: tipoCiclo === 'extra' ? (motivoSveglia ? `la mia sveglia («${motivoSveglia}»)` : perche.startsWith('la sveglia') ? 'la mia sveglia' : 'un messaggio di Luca') : undefined, osservazione: d.osservazione, decisione: d.decisione, motivo: d.motivo, azioni: esitiAzioni,
     titolo: racconto?.titolo ?? '', articolo: racconto?.articolo ?? '', post: racconto?.post?.trim() ?? '', frase, uscita,
     lezione: d.lezione, fiducia: d.fiducia,
@@ -329,7 +361,7 @@ async function main() {
   scriviJson('notizie.json', []) // lette: da qui ripartono vuote
 
   if (uscita) {
-    const cartella = path.join(RADICE, process.env.NUMMO_USCITA || 'uscita', uscita)
+    const cartella = path.resolve(RADICE, process.env.NUMMO_USCITA || 'uscita', uscita)
     fs.mkdirSync(cartella, { recursive: true })
     fs.writeFileSync(path.join(cartella, 'post.txt'), racconto.post.trim() + PIE_DI_POST + '\n')
     const png = await disegnaPost({ conti: dopo, frase })

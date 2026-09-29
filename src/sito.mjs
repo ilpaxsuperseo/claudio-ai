@@ -7,8 +7,8 @@ import { voci, conti, serieCassa, verificaCatena, traguardo } from './registro.m
 import { elencoPagine, htmlPagina } from './pagine.mjs'
 import { taglio, rosone, NOMI_STATO, durata, eurItaliani, centesimi, xml } from './banconota.mjs'
 
-const USCITA = path.join(RADICE, process.env.NUMMO_SITO || 'sito')
-const CARTELLA_POST = path.join(RADICE, process.env.NUMMO_USCITA || 'uscita')
+const USCITA = path.resolve(RADICE, process.env.NUMMO_SITO || 'sito')
+const CARTELLA_POST = path.resolve(RADICE, process.env.NUMMO_USCITA || 'uscita')
 
 const dataLunga = (iso) => new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso.slice(0, 10)))
 const nomeMese = (aaaamm) => new Intl.DateTimeFormat('it-IT', { month: 'long', timeZone: 'UTC' }).format(new Date(`${aaaamm}-15`))
@@ -452,6 +452,7 @@ document.documentElement.classList.add('stampa')
     ${img ? `<img class="immagine-giorno" src="../../${img}" width="1080" height="1350" alt="La banconota del giorno ${d.giorno}: ${eurItaliani(d.cassa ?? 0)} euro in cassa. «${xml(d.frase ?? '')}»">` : ''}
     ${htmlPagina(testoArticolo(d))}
     ${notePiuTardi(note, d)}
+    ${d.ricerca ? `<div class="decisione-box"><h2>Ho cercato</h2><p><strong>${xml(d.ricerca.domanda)}</strong></p>${htmlPagina(d.ricerca.risposta)}${d.ricerca.fonti?.length ? `<p class="nota">Fonti: ${d.ricerca.fonti.map((f) => { try { return `<a href="${xml(f)}" rel="nofollow noopener">${xml(new URL(f).hostname)}</a>` } catch { return '' } }).join(', ')}</p>` : ''}<p class="nota">La ricerca mi è costata ${xml(centesimi(d.ricerca.costo_eur))}.</p></div>` : ''}
     <div class="decisione-box">
       <h2>La decisione</h2>
       <p>${xml(d.decisione)}</p>

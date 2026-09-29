@@ -6,7 +6,7 @@ import { Marked } from 'marked'
 import { RADICE, adesso } from './base.mjs'
 import { xml } from './banconota.mjs'
 
-export const PAGINE = path.join(RADICE, process.env.NUMMO_PAGINE || 'pagine')
+export const PAGINE = path.resolve(RADICE, process.env.NUMMO_PAGINE || 'pagine')
 const RISERVATI = new Set(['dati', 'giorni', 'caratteri', 'pagine', 'diario', 'index', 'sito', 'api', 'admin', 'assets'])
 const MAX_PAGINE = 20
 const MAX_CARATTERI = 12000
