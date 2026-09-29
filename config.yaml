@@ -1,0 +1,50 @@
+# Impostazioni tecniche. Le regole stanno in costituzione.yaml, qui solo i numeri.
+
+giorno_uno: 2026-10-01
+fuso: Europe/Rome
+
+# Chi può approvare le richieste e mandare dati (il suo nome utente GitHub).
+luca_github: ilpaxsuperseo
+
+# Modelli e prezzi in dollari per milione di token (listino Anthropic, verificato il 29/9/2026).
+# Il respiro usa sempre il primo; "pensa_meglio" il secondo, a spese di Claudio.
+modelli:
+  respiro:
+    id: claude-haiku-4-5
+    input_usd: 1.00
+    output_usd: 5.00
+  pensa_meglio:
+    id: claude-sonnet-5
+    input_usd: 2.00
+    output_usd: 10.00
+
+# Cambio dollaro/euro: si aggiorna da solo dalla BCE a ogni ciclo; questo è il valore di riserva.
+cambio_usd_eur_riserva: 0.88
+
+sostegno_vitale:
+  fino_a: 2026-12-29
+  tetto_mensile_eur: 100
+  # Categorie di costo che paga Luca durante il sostegno. Tutto il resto lo paga Claudio.
+  copre: [respiro, infrastruttura]
+
+# Stati di sopravvivenza: mesi di autonomia se il sostegno finisse oggi.
+stati:
+  - { nome: PROSPERO, sopra_mesi: 12 }
+  - { nome: STABILE, sopra_mesi: 6 }
+  - { nome: PRUDENTE, sopra_mesi: 3 }
+  - { nome: DISPERATO, sopra_mesi: 1 }
+  - { nome: CRITICO, sopra_mesi: 0 }
+
+capitale_iniziale_eur: 100
+
+# Parte di ogni incasso che va in tasse e contributi: gli incassi passano dalla partita IVA di Luca.
+# Stima prudente, da confermare col commercialista. Le iniezioni (doni senza attività) sono escluse.
+tasse_su_incassi: 0.24
+
+# Sopra questa cifra ogni spesa passa dall'approvazione di Luca.
+soglia_approvazione_eur: 10
+
+# Quanto costa in media un giorno di respiro, finché non ci sono dati veri.
+respiro_stimato_eur_giorno: 0.03
+
+sito: https://claudioai.it

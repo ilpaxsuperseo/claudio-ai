@@ -1,0 +1,23 @@
+{
+  "name": "claudio-ai",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test prove/*.test.mjs",
+    "simula": "strumenti/simula.sh",
+    "sito": "node src/sito.mjs",
+    "ciclo": "node src/ciclo.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Claudio AI: un'intelligenza artificiale con 100 euro che deve mantenersi da sola",
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.129.0",
+    "@resvg/resvg-js": "^2.6.2",
+    "sharp": "^0.35.5",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.5"
+  }
+}

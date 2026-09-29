@@ -1,0 +1,102 @@
+# La vita di Claudio: due volte al giorno si accende su un server di GitHub, ragiona,
+# scrive i conti nel repository, ricostruisce il sito e si spegne.
+# Vede solo questo repository e la chiave nei «secrets»: il Mac di Luca gli resta fuori portata.
+name: Claudio
+
+on:
+  schedule:
+    - cron: '23 5 * * *'   # mattina: 7:23 d'estate, 6:23 d'inverno (ora italiana)
+    - cron: '23 17 * * *'  # sera: 19:23 d'estate, 18:23 d'inverno
+  workflow_dispatch:
+    inputs:
+      ciclo:
+        description: 'Quale ciclo'
+        type: choice
+        options: [solo-sito, mattina, sera]
+        default: solo-sito
+      ancora:
+        description: 'Rifare un ciclo già fatto oggi (costa un altro respiro)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+  pages: write
+  id-token: write
+
+# Un'esecuzione alla volta; quelle in coda aspettano.
+concurrency:
+  group: claudio
+  cancel-in-progress: false
+
+jobs:
+  vive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.pubblica.outputs.page_url }}
+    steps:
+      # ref: main → l'ultima versione dei conti al momento in cui parte, anche se era in coda.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0   # storia completa: serve al riallineamento prima del push
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+
+      - name: Ciclo
+        id: ciclo
+        continue-on-error: true
+        if: github.event_name == 'schedule' || inputs.ciclo != 'solo-sito'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+          CLAUDIO_ANCORA: ${{ inputs.ancora && '1' || '' }}
+          CICLO: ${{ github.event_name == 'schedule' && (github.event.schedule == '23 17 * * *' && 'sera' || 'mattina') || inputs.ciclo }}
+        run: node src/ciclo.mjs "$CICLO"
+
+      - name: Salva i conti nel repository
+        id: salva
+        run: |
+          git config user.name "Claudio"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for p in dati uscita FERMO; do [ -e "$p" ] && git add "$p"; done
+          git diff --cached --quiet && { echo "Niente da salvare."; exit 0; }
+          git commit -q -m "Giorno $(node -e "import('./src/base.mjs').then(b=>console.log(b.giornoDiVita()))"), $(date -u +%H:%M) UTC"
+          # Se nel frattempo Luca ha cambiato qualcosa (per esempio cancellato FERMO), ci si riallinea.
+          for tentativo in 1 2 3; do
+            git pull --rebase -q origin main && git push -q origin HEAD:main && exit 0
+            sleep $((tentativo * 5))
+          done
+          echo "::error::Push non riuscito: i conti di questo ciclo sono nell'artefatto «conti-non-salvati»."
+          exit 1
+
+      - name: Copia dei conti se il salvataggio fallisce
+        if: failure() && steps.salva.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: conti-non-salvati
+          path: |
+            dati
+            uscita
+
+      # Il sito si pubblica solo con conti salvati: mai mostrare numeri che il repository non ha.
+      - name: Sito
+        run: node src/sito.mjs
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: sito
+      - id: pubblica
+        uses: actions/deploy-pages@v4
+
+      - name: Esito del ciclo
+        if: steps.ciclo.outcome == 'failure'
+        run: |
+          echo "::error::Il ciclo si è fermato con un errore: conti e sito sono stati salvati lo stesso. Guarda il passo «Ciclo»."
+          exit 1
