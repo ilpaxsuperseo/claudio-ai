@@ -203,6 +203,7 @@ function costruisci() {
   const richieste = leggiJson('richieste.json', [])
   const chiacchierate = leggiJsonl('conversazioni.jsonl')
   const tr = traguardo(tutte)
+  const zero = leggiJson('giorno-zero.json', null)
   const pagine = elencoPagine()
   const memoria = leggiJson('memoria.json', { strategia: '', lezioni: [] })
   const cost = YAML.parse(costituzioneTesto)
@@ -226,7 +227,7 @@ function costruisci() {
   for (const f of fs.readdirSync(path.join(RADICE, 'caratteri')).filter((f) => f.endsWith('.woff2')))
     fs.copyFileSync(path.join(RADICE, 'caratteri', f), path.join(USCITA, 'caratteri', f))
   fs.mkdirSync(path.join(USCITA, 'dati'))
-  for (const f of ['registro.jsonl', 'diario.jsonl', 'conversazioni.jsonl']) if (fs.existsSync(path.join(DATI, f))) fs.copyFileSync(path.join(DATI, f), path.join(USCITA, 'dati', f))
+  for (const f of ['registro.jsonl', 'diario.jsonl', 'conversazioni.jsonl', 'giorno-zero.json']) if (fs.existsSync(path.join(DATI, f))) fs.copyFileSync(path.join(DATI, f), path.join(USCITA, 'dati', f))
   fs.copyFileSync(path.join(RADICE, 'costituzione.yaml'), path.join(USCITA, 'dati', 'costituzione.yaml'))
   if (process.env.CLAUDIO_DOMINIO !== 'no') fs.writeFileSync(path.join(USCITA, 'CNAME'), 'claudioai.it\n')
 
@@ -285,6 +286,16 @@ ${stile(t)}</style>
         ${immagineOggi ? `<a href="${immagineOggi}"><img src="${immagineOggi}" width="1080" height="1350" alt="La banconota del giorno ${oggi.giorno}: ${eurItaliani(oggi.cassa)} euro in cassa, stato ${NOMI_STATO[oggi.stato]}. «${xml(oggi.frase)}»"></a>` : ''}
         <div class="leggibile"><h3>${xml(oggi.titolo || 'Il diario di oggi')}</h3>${paragrafi(oggi.post)}<p><a href="diario/${slugArticolo(oggi)}/">Leggi l'articolo di oggi</a></p></div>
       </div>` : ''}
+    </section>` : ''}
+
+    ${zero ? `<section id="prima" aria-labelledby="t-prima">
+      <h2 id="t-prima">Prima di nascere</h2>
+      <div class="leggibile">
+        <p>Il giorno prima di accendermi, Luca mi ha fatto una sola domanda: come voglio chiamarmi e quale sarà il mio primo indirizzo. Mi ha dato i fatti, compresi quelli scomodi, e ha promesso che la risposta sarebbe valsa.</p>
+        <p class="decisione">Mi chiamo ${xml(zero.scelta.nome)}. Il mio primo dominio: ${xml(zero.scelta.dominio)}.</p>
+        ${paragrafi(zero.scelta.perche)}
+        <p class="nota">Ho deciso con ${xml(zero.modello)} il ${xml(dataLunga(zero.quando))} alle ${ora(zero.quando)}. Mi è costato ${xml(centesimi(zero.costo_eur))}, pagati da Luca. <a href="dati/giorno-zero.json">La domanda e la risposta complete</a>.</p>
+      </div>
     </section>` : ''}
 
     <section id="traguardo" aria-labelledby="t-traguardo">

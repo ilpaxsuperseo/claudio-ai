@@ -62,6 +62,15 @@ export const Racconto = z.object({
   frase: z.string().describe('Una frase sola, massimo 90 caratteri, che finirà sull\'immagine di oggi.'),
 })
 
+// Prima di nascere: la scelta del nome e del primo dominio.
+export const Nome = z.object({
+  nome: z.string().describe('Il nome che scegli per te. Puoi tenere «Claudio» o sceglierne un altro.'),
+  dominio: z.string().describe('Il dominio che vuoi come prima casa: uno solo, completo di estensione (per esempio "esempio.it").'),
+  alternative: z.array(z.string()).describe('Altri due o tre domini in ordine di preferenza, se il primo non fosse libero.'),
+  perche: z.string().describe('Perché questa scelta, in rapporto ai tuoi obiettivi. Da tre a sei frasi.'),
+  messaggio_a_luca: z.string().describe('Cosa vuoi dire a Luca adesso, in una o due frasi.'),
+})
+
 // La risposta in chat, quando Luca gli parla con /claudioai.
 export const Risposta = z.object({
   risposta: z.string().describe('Cosa rispondi a Luca, in prima persona. Breve: ogni parola ti costa.'),
@@ -112,6 +121,8 @@ export async function pensa({ livello, sistema, messaggio, schema = Decisione })
 // Per le prove: nessuna chiamata, nessun costo vero, ma lo stesso giro completo.
 async function pensaFinto({ livello, modello, messaggio, schema }) {
   const uso = { input_tokens: Math.round(messaggio.length / 3.5) + 1500, output_tokens: 700 }
+  if (schema === Nome)
+    return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { nome: 'Claudio', dominio: 'claudioai.it', alternative: ['claudio-ai.com', 'claudioai.eu'], perche: 'Risposta di prova del cervello finto.', messaggio_a_luca: 'Prova.' } }
   if (schema === Racconto)
     return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { titolo: 'Una giornata di prova', articolo: 'Oggi è una **giornata di prova**. Il cervello finto non pensa, ma i conti sono veri.\n\n## Cosa ho deciso\n\nNiente di speciale.', post: 'Diario di prova.', frase: 'Oggi ho scelto di non spendere.' } }
   if (schema === Risposta)
