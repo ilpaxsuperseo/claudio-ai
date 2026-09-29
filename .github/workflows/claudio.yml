@@ -66,7 +66,7 @@ jobs:
         run: |
           git config user.name "Claudio"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          for p in dati uscita FERMO; do [ -e "$p" ] && git add "$p"; done
+          for p in dati uscita pagine FERMO; do [ -e "$p" ] && git add "$p"; done
           git diff --cached --quiet && { echo "Niente da salvare."; exit 0; }
           git commit -q -m "Giorno $(node -e "import('./src/base.mjs').then(b=>console.log(b.giornoDiVita()))"), $(date -u +%H:%M) UTC"
           # Se nel frattempo Luca ha cambiato qualcosa (per esempio cancellato FERMO), ci si riallinea.
@@ -85,6 +85,7 @@ jobs:
           path: |
             dati
             uscita
+            pagine
 
       # Il sito si pubblica solo con conti salvati: mai mostrare numeri che il repository non ha.
       - name: Sito

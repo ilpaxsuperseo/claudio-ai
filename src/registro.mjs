@@ -22,6 +22,10 @@ export const TIPI = {
 // (conversazione) le paga Claudio.
 export const PENSIERO = ['respiro', 'respiro_extra', 'cervello', 'conversazione']
 
+// Chi paga al posto di Claudio: il sostegno vitale (90 giorni) e Luca (il diario, sempre).
+const DI_LUCA = ['sostegno_vitale', 'luca']
+const pagatoDaLuca = (categoria) => (config.pagati_da_luca ?? []).includes(categoria)
+
 const impronta = (voce) => crypto.createHash('sha256').update(JSON.stringify(voce)).digest('hex')
 const micro = (eur) => Math.round(eur * 1e6)
 
@@ -51,7 +55,7 @@ export const registra = (dati) => scrivi({ pagato_da: 'claudio', ...dati })
 
 // Cassa di Claudio in milionesimi di euro.
 export const cassaMicro = (tutte = voci()) =>
-  tutte.filter((v) => v.pagato_da !== 'sostegno_vitale').reduce((s, v) => s + micro(v.importo_eur), 0)
+  tutte.filter((v) => !DI_LUCA.includes(v.pagato_da)).reduce((s, v) => s + micro(v.importo_eur), 0)
 
 // Quanto sostegno resta questo mese per una categoria (in euro; zero se la categoria non è coperta).
 export function sostegnoResiduo(categoria, tutte = voci()) {
@@ -66,6 +70,7 @@ export function sostegnoResiduo(categoria, tutte = voci()) {
 
 // Si può pagare questa cifra, fra sostegno residuo e cassa? Da chiedere PRIMA di spendere.
 export function puoPagare(categoria, importo_eur, tutte = voci()) {
+  if (pagatoDaLuca(categoria)) return true
   const costo = micro(Math.abs(importo_eur))
   const coperto = Math.min(costo, micro(sostegnoResiduo(categoria, tutte)))
   return costo - coperto <= cassaMicro(tutte)
@@ -76,6 +81,7 @@ export function puoPagare(categoria, importo_eur, tutte = voci()) {
 // "giaSostenuto": il servizio è già stato consumato (una chiamata al modello fatta): si registra
 // comunque, perché nascondere una spesa è peggio che andare sotto zero.
 export function registraCosto({ categoria, importo_eur, descrizione, rif, giaSostenuto = false }) {
+  if (pagatoDaLuca(categoria)) return [scrivi({ tipo: 'costo', categoria, importo_eur: -Math.abs(importo_eur), pagato_da: 'luca', descrizione, rif })]
   const tutte = voci()
   const costo = micro(Math.abs(importo_eur))
   const coperto = Math.min(costo, micro(sostegnoResiduo(categoria, tutte)))
@@ -113,7 +119,8 @@ export function conti(tutte = voci()) {
   const oggi = giornoDiVita()
 
   // Quanto costa vivere un giorno pagando tutto (autonomia), e quanto costa solo respirare (morte).
-  const costoGiorno = mediaGiornaliera(tutte, () => true, oggi) ?? config.respiro_stimato_eur_giorno
+  // Il diario lo paga sempre Luca: non accorcia la vita di Claudio.
+  const costoGiorno = mediaGiornaliera(tutte, (v) => !pagatoDaLuca(v.categoria), oggi) ?? config.respiro_stimato_eur_giorno
   const costoRespiro = mediaGiornaliera(tutte, (v) => v.categoria === 'respiro', oggi) ?? config.respiro_stimato_eur_giorno
   const autonomiaGiorni = costoGiorno > 0 ? cassa / costoGiorno : Infinity
   const morto = tutte.some((v) => v.tipo === 'morte')
@@ -129,6 +136,7 @@ export function conti(tutte = voci()) {
     tasse: somma((v) => v.tipo === 'tasse'),
     costi_pagati_da_claudio: somma((v) => v.tipo === 'costo' && v.pagato_da === 'claudio'),
     costi_pagati_dal_sostegno: somma((v) => v.tipo === 'costo' && v.pagato_da === 'sostegno_vitale'),
+    costi_del_diario: somma((v) => v.tipo === 'costo' && v.pagato_da === 'luca'),
     costo_oggi: somma((v) => v.tipo === 'costo' && v.giorno === oggi),
     pensiero_oggi: somma((v) => v.tipo === 'costo' && v.giorno === oggi && PENSIERO.includes(v.categoria)),
     costo_giorno_medio: arrotonda(costoGiorno),
@@ -148,13 +156,50 @@ export function stato({ cassa, autonomiaGiorni, costoRespiro, morto = false }) {
   return config.stati.find((s) => mesi > s.sopra_mesi)?.nome ?? 'CRITICO'
 }
 
+// Il traguardo dei 900 €: netto del mese, livelli della scala, budget per gli strumenti.
+// Contano solo i guadagni (vendite di cose create da Claudio); le tasse di un guadagno hanno rif «<rif> tasse».
+export const CATEGORIE_STRUMENTI = ['creativo', 'servizi', 'strumenti']
+export function traguardo(tutte = voci()) {
+  const tasseDi = new Map(tutte.filter((v) => v.tipo === 'tasse').map((v) => [v.rif, -v.importo_eur]))
+  const mesi = {}
+  let guadagniTot = 0, tasseGuadagniTot = 0, spesiInStrumenti = 0
+  for (const v of tutte) {
+    const m = (mesi[dataLocale(new Date(v.quando)).slice(0, 7)] ??= { guadagni: 0, tasse: 0, costi: 0 })
+    if (v.tipo === 'guadagno') {
+      const tasse = tasseDi.get(`${v.rif} tasse`) ?? 0
+      m.guadagni += v.importo_eur; m.tasse += tasse
+      guadagniTot += v.importo_eur; tasseGuadagniTot += tasse
+    }
+    if (v.tipo === 'costo' && !pagatoDaLuca(v.categoria)) m.costi -= v.importo_eur   // il diario non conta nel netto
+    if (v.tipo === 'costo' && v.pagato_da === 'claudio' && CATEGORIE_STRUMENTI.includes(v.categoria)) spesiInStrumenti -= v.importo_eur
+  }
+  const elenco = Object.entries(mesi).map(([mese, m]) => ({ mese, ...m, netto: m.guadagni - m.tasse - m.costi }))
+  const mese = dataLocale().slice(0, 7)
+  const questo = elenco.find((m) => m.mese === mese) ?? { mese, guadagni: 0, tasse: 0, costi: 0, netto: 0 }
+  const vivo = !tutte.some((v) => v.tipo === 'morte')
+  const tondo = (m) => ({ ...m, guadagni: arrotonda(m.guadagni), tasse: arrotonda(m.tasse), costi: arrotonda(m.costi), netto: arrotonda(m.netto) })
+  return {
+    obiettivo: config.traguardo_eur,
+    questo_mese: tondo(questo),
+    migliore_mese: elenco.length ? tondo(elenco.reduce((a, b) => (b.netto > a.netto ? b : a))) : null,
+    livelli: [
+      { nome: 'Sopravvivere da solo', raggiunto: !inSostegno() && vivo && tutte.length > 0 },
+      { nome: 'Il primo euro guadagnato', raggiunto: guadagniTot >= 1 },
+      { nome: 'Autosufficiente per un mese', raggiunto: elenco.some((m) => m.guadagni > 0 && m.netto >= 0) },
+      { nome: '100 € netti in un mese', raggiunto: elenco.some((m) => m.netto >= 100) },
+      { nome: `${config.traguardo_eur} € netti in un mese`, raggiunto: elenco.some((m) => m.netto >= config.traguardo_eur) },
+    ],
+    budget_strumenti: arrotonda(Math.max(0, config.reinvestimento_quota * (guadagniTot - tasseGuadagniTot) - spesiInStrumenti)),
+  }
+}
+
 // La cassa a fine di ogni giorno, per il grafico.
 export function serieCassa(tutte = voci()) {
   const oggi = giornoDiVita()
   const serie = []
   let cassa = 0
   let i = 0
-  const mie = tutte.filter((v) => v.pagato_da !== 'sostegno_vitale')
+  const mie = tutte.filter((v) => !DI_LUCA.includes(v.pagato_da))
   for (let g = 1; g <= oggi; g++) {
     while (i < mie.length && mie[i].giorno <= g) cassa += micro(mie[i++].importo_eur)
     serie.push({ giorno: g, cassa: arrotonda(cassa / 1e6) })

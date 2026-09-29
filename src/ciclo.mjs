@@ -3,8 +3,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { RADICE, config, costituzioneTesto, leggiJsonl, aggiungiJsonl, leggiJson, scriviJson, adesso, dataLocale, giornoDiVita, inSostegno, euro, arrotonda } from './base.mjs'
-import { voci, registra, registraCosto, conti, giaRegistrato, puoPagare } from './registro.mjs'
-import { pensa, costoMassimo, STRUMENTI } from './cervello.mjs'
+import { voci, registra, registraCosto, conti, giaRegistrato, puoPagare, traguardo } from './registro.mjs'
+import { scriviPagina, elencoPagine } from './pagine.mjs'
+import { pensa, costoMassimo, STRUMENTI, Racconto } from './cervello.mjs'
 import * as github from './github.mjs'
 import { disegnaPost, jpegPost } from './immagine.mjs'
 import { leggiEntrata, leggiSpesa } from './messaggi.mjs'
@@ -12,7 +13,7 @@ import { VOCE } from './voce.mjs'
 
 const tipoCiclo = process.argv[2] === 'sera' ? 'sera' : 'mattina'
 const FERMO = path.join(RADICE, 'FERMO')
-const PIE_DI_POST = '\n\nSono un\'intelligenza artificiale. Conti e decisioni in chiaro su claudioai.it'
+const PIE_DI_POST = '\n\nSono un\'intelligenza artificiale. Il mio diario, i conti e le decisioni: claudioai.it/diario'
 
 function registraDiario(voce) {
   aggiungiJsonl('diario.jsonl', { quando: adesso().toISOString(), giorno: giornoDiVita(), data: dataLocale(), ciclo: tipoCiclo, ...voce })
@@ -80,9 +81,22 @@ function osservazione({ c, fatti, esiti, richieste, memoria }) {
     `Costo medio di un giorno, tutto compreso: ${euro(c.costo_giorno_medio, 4)}`,
     `Autonomia se il sostegno finisse oggi: ${c.autonomia_giorni ?? 'oltre'} giorni`,
     '',
+    'IL TUO TRAGUARDO',
+    ...(() => {
+      const t = traguardo()
+      const q = t.questo_mese
+      return [
+        `Un'intelligenza artificiale può guadagnare più di una persona con un part-time? Obiettivo: ${t.obiettivo} € netti in un mese.`,
+        `Questo mese: guadagni ${euro(q.guadagni)}, tasse su quei guadagni ${euro(q.tasse)}, tutti i costi ${euro(q.costi, 4)}, netto ${euro(q.netto)}.`,
+        `La scala: ${t.livelli.map((l) => `${l.raggiunto ? '[fatto]' : '[da fare]'} ${l.nome}`).join('; ')}.`,
+        `Budget per strumenti da spendere senza chiedere (metà dei guadagni netti): ${euro(t.budget_strumenti)}.`,
+        `Le tue pagine su claudioai.it: ${elencoPagine().map((p) => `/${p.percorso}/ («${p.titolo}»)`).join(', ') || 'nessuna'}.`,
+      ]
+    })(),
+    '',
     'I TUOI STRUMENTI (non ne hai altri)',
     ...Object.entries(STRUMENTI).map(([nome, cosa]) => `- ${nome}: ${cosa}`),
-    'Il post del diario si pubblica ogni giorno: lo scrivi tu, l\'immagine con i numeri la fa il codice.',
+    'Qui decidi e agisci. Il diario (articolo, post e frase per l\'immagine) lo scrivi subito dopo, in un passaggio a parte che paga Luca.',
     '',
     'RISPOSTE DI LUCA ALLE TUE RICHIESTE',
     ...(esiti.length ? esiti.map((e) => `- ${e.id} ${e.esito}: «${e.risposta}»`) : ['- nessuna novità']),
@@ -109,7 +123,7 @@ function osservazione({ c, fatti, esiti, richieste, memoria }) {
     })(),
     '',
     tipoCiclo === 'sera'
-      ? 'È il ciclo della sera: rispondi solo alle novità. Il post di stasera va scritto solo se è successo qualcosa che valga la pena raccontare.'
+      ? 'È il ciclo della sera: rispondi solo alle novità.'
       : 'Decidi la giornata.',
   ]
   return righe.join('\n')
@@ -224,6 +238,9 @@ async function main() {
       nuova.issue = await github.apriRichiesta(nuova).catch((e) => { console.error(`Richiesta ${id} non aperta: ${e.message}`); return null })
       scriviJson('richieste.json', richieste)
       esitiAzioni.push({ ...a, esito: nuova.issue || !github.collegato ? `richiesta ${id} inviata` : `richiesta ${id} registrata, issue non aperta` })
+    } else if (a.strumento === 'scrivi_pagina') {
+      // Nel diario va solo l'inizio: la pagina intera sta in pagine/ e la storia del repository tiene le versioni.
+      esitiAzioni.push({ ...a, dettagli: a.dettagli.slice(0, 300), esito: scriviPagina(a.percorso, a.dettagli) })
     } else {
       esitiAzioni.push({ ...a, esito: 'fatto' })
     }
@@ -233,20 +250,50 @@ async function main() {
   if (d.strategia?.trim()) memoria.strategia = d.strategia.trim()
   scriviJson('memoria.json', memoria)
 
+  // Il racconto: una seconda chiamata, pagata da Luca (categoria «diario»). Racconta, non decide:
+  // riceve solo i fatti della giornata. Se fallisce, il diario resta con la decisione e basta.
   const dopo = conti()
-  const conPost = tipoCiclo === 'mattina' || d.post.trim().length > 0
+  let racconto = null
+  let costoRacconto = 0
+  try {
+    const fattiDelGiorno = [
+      `Giorno di vita: ${dopo.giorno} (${dataLocale()}), ciclo del${tipoCiclo === 'sera' ? 'la sera' : ' mattino'}.`,
+      `Cassa: ${euro(dopo.cassa)}. Stato: ${dopo.stato}. Autonomia senza aiuti: ${dopo.autonomia_giorni ?? 'oltre'} giorni. Pensare oggi ti è costato ${euro(dopo.pensiero_oggi, 4)}.`,
+      `Cosa hai notato: ${d.osservazione}`,
+      `Cosa hai deciso: ${d.decisione}`,
+      `Perché: ${d.motivo}`,
+      `Cosa hai fatto: ${esitiAzioni.map((a) => `${a.strumento} (${a.esito})`).join('; ') || 'niente'}`,
+      d.lezione ? `Cosa hai imparato: ${d.lezione}` : '',
+      luca.fatti.length ? `Fatti e messaggi da Luca: ${luca.fatti.join('; ')}` : '',
+      esiti.length ? `Risposte di Luca alle tue richieste: ${esiti.map((e) => `${e.id} ${e.esito}`).join('; ')}` : '',
+    ].filter(Boolean).join('\n')
+    const r3 = await pensa({
+      livello: 'respiro', schema: Racconto,
+      sistema: `${VOCE}\n\nAdesso scrivi il tuo diario: l'articolo di oggi per claudioai.it/diario, il testo per i social e la frase per l'immagine. Il diario racconta, non vende: niente promozioni dei tuoi prodotti. Usa solo i fatti che trovi qui.`,
+      messaggio: fattiDelGiorno,
+    })
+    registraCosto({ categoria: 'diario', importo_eur: r3.costo.eur, descrizione: `Diario (${r3.modello}, ${r3.uso.input_tokens}+${r3.uso.output_tokens} token)`, rif, giaSostenuto: true })
+    racconto = r3.decisione
+    costoRacconto = r3.costo.eur
+  } catch (e) {
+    if (e.costo) registraCosto({ categoria: 'diario', importo_eur: e.costo.eur, descrizione: `Diario non riuscito (${e.modello}): ${e.message}`, rif, giaSostenuto: true })
+    console.error(`Racconto non riuscito: ${e.message}`)
+  }
+
+  const frase = racconto?.frase || d.decisione.slice(0, 90)
   registraDiario({
-    stato: dopo.stato, cassa: dopo.cassa, modello, costo_eur: arrotonda(costoTotale, 6),
+    stato: dopo.stato, cassa: dopo.cassa, modello, costo_eur: arrotonda(costoTotale, 6), costo_diario_eur: arrotonda(costoRacconto, 6),
     osservazione: d.osservazione, decisione: d.decisione, motivo: d.motivo, azioni: esitiAzioni,
-    post: conPost ? d.post.trim() : '', frase: d.frase, lezione: d.lezione, fiducia: d.fiducia,
+    titolo: racconto?.titolo ?? '', articolo: racconto?.articolo ?? '', post: racconto?.post?.trim() ?? '', frase,
+    lezione: d.lezione, fiducia: d.fiducia,
   })
 
-  if (conPost) {
+  if (racconto?.post) {
     const cartella = path.join(RADICE, process.env.CLAUDIO_USCITA || 'uscita', `${dataLocale()}${tipoCiclo === 'sera' ? '-sera' : ''}`)
     fs.mkdirSync(cartella, { recursive: true })
-    fs.writeFileSync(path.join(cartella, 'post.txt'), d.post.trim() + PIE_DI_POST + '\n')
-    const png = await disegnaPost({ conti: dopo, frase: d.frase })
-    fs.writeFileSync(path.join(cartella, 'post.jpg'), await jpegPost(png, `Claudio, giorno ${dopo.giorno}: ${euro(dopo.cassa)} in cassa. ${d.frase}`))
+    fs.writeFileSync(path.join(cartella, 'post.txt'), racconto.post.trim() + PIE_DI_POST + '\n')
+    const png = await disegnaPost({ conti: dopo, frase })
+    fs.writeFileSync(path.join(cartella, 'post.jpg'), await jpegPost(png, `Claudio, giorno ${dopo.giorno}: ${euro(dopo.cassa)} in cassa. ${frase}`))
   }
 
   console.log(`Giorno ${dopo.giorno} · ${dopo.stato} · cassa ${euro(dopo.cassa)} · pensiero ${euro(costoTotale, 4)} · ${d.decisione}`)

@@ -10,7 +10,8 @@ const cartella = fs.mkdtempSync(path.join(os.tmpdir(), 'claudio-prove-'))
 process.env.CLAUDIO_DATI = cartella
 process.env.CLAUDIO_ADESSO = '2026-10-05T07:23:00Z'
 
-const { registra, registraCosto, conti, verificaCatena, voci, stato, puoPagare, giaRegistrato, sostegnoResiduo } = await import('../src/registro.mjs')
+const { registra, registraCosto, conti, verificaCatena, voci, stato, puoPagare, giaRegistrato, sostegnoResiduo, traguardo } = await import('../src/registro.mjs')
+const { scriviPagina } = await import('../src/pagine.mjs')
 const { esitoDi } = await import('../src/github.mjs')
 const { leggiEntrata, leggiSpesa, leggiImporto } = await import('../src/messaggi.mjs')
 const { taglio, durata } = await import('../src/banconota.mjs')
@@ -92,6 +93,35 @@ test('le risposte di Luca: solo sì e no espliciti (Codex, punto 9)', () => {
   assert.equal(esitoDi('Siccome costa troppo, aspetta'), null)
   assert.equal(esitoDi('Nope'), null)
   assert.equal(esitoDi('Quanto costa?'), null)
+})
+
+test('il diario lo paga Luca: non tocca la cassa né il netto', () => {
+  const cassa = conti().cassa
+  const nettoPrima = traguardo().questo_mese.netto
+  const [v] = registraCosto({ categoria: 'diario', importo_eur: 0.006, descrizione: 'diario di prova', rif: 'prova diario' })
+  assert.equal(v.pagato_da, 'luca')
+  assert.equal(conti().cassa, cassa)
+  assert.equal(traguardo().questo_mese.netto, nettoPrima)
+  assert.equal(puoPagare('diario', 1e6), true)
+})
+
+test('il traguardo: netto del mese, scala e budget per gli strumenti', () => {
+  const prima = traguardo()
+  registra({ tipo: 'guadagno', importo_eur: 10, descrizione: 'prima vendita', rif: 'vendita 1' })
+  registra({ tipo: 'tasse', importo_eur: -2.4, descrizione: 'tasse', rif: 'vendita 1 tasse' })
+  const dopo = traguardo()
+  assert.equal(dopo.questo_mese.guadagni, prima.questo_mese.guadagni + 10)
+  assert.equal(dopo.questo_mese.tasse, prima.questo_mese.tasse + 2.4)
+  assert.ok(Math.abs(dopo.questo_mese.netto - (prima.questo_mese.netto + 7.6)) < 1e-6)
+  assert.equal(dopo.livelli[1].raggiunto, true) // il primo euro guadagnato
+  assert.equal(dopo.livelli[4].raggiunto, false)
+  assert.equal(dopo.budget_strumenti, 3.8) // metà di 10 − 2,40
+})
+
+test('le pagine di Claudio: indirizzi validi, riservati e cancellazione', () => {
+  process.env.CLAUDIO_PAGINE = cartella
+  assert.match(scriviPagina('Chi Sono', 'x'), /non è un indirizzo valido/)
+  assert.match(scriviPagina('diario', 'x'), /riservato/)
 })
 
 test('la morte è una riga del libro, e da lì in poi resta', () => {

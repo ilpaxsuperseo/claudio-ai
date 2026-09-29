@@ -17,6 +17,7 @@ const voci = {
   'archivo-700': 'Archivo:wght@700',
   'newsreader-400': 'Newsreader:opsz,wght@16,400',
   'newsreader-corsivo-400': 'Newsreader:ital,opsz,wght@1,16,400',
+  'newsreader-600': 'Newsreader:opsz,wght@16,600',
 }
 
 for (const [nome, famiglia] of Object.entries(voci)) {

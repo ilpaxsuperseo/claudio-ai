@@ -3,13 +3,15 @@ import fs from 'node:fs'
 import path from 'node:path'
 import YAML from 'yaml'
 import { RADICE, DATI, config, costituzioneTesto, leggiJsonl, leggiJson, dataLocale } from './base.mjs'
-import { voci, conti, serieCassa, verificaCatena } from './registro.mjs'
+import { voci, conti, serieCassa, verificaCatena, traguardo } from './registro.mjs'
+import { elencoPagine, htmlPagina } from './pagine.mjs'
 import { taglio, rosone, NOMI_STATO, durata, eurItaliani, centesimi, xml } from './banconota.mjs'
 
 const USCITA = path.join(RADICE, process.env.CLAUDIO_SITO || 'sito')
 const CARTELLA_POST = path.join(RADICE, process.env.CLAUDIO_USCITA || 'uscita')
 
 const dataLunga = (iso) => new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso.slice(0, 10)))
+const nomeMese = (aaaamm) => new Intl.DateTimeFormat('it-IT', { month: 'long', timeZone: 'UTC' }).format(new Date(`${aaaamm}-15`))
 const ora = (iso) => new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: config.fuso }).format(new Date(iso))
 // Sotto il centesimo si mostrano quattro decimali: un pensiero costa frazioni di centesimo.
 const segno = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + (Math.abs(n) < 0.01 && n !== 0
@@ -50,69 +52,13 @@ function grafico(serie, { L, A, corpo, classe }) {
   </svg>`
 }
 
-function costruisci() {
-  const tutte = voci()
-  // Prima del giorno uno il libro è vuoto: la pagina aspetta, con la banconota da 100 intatta.
-  const attesa = tutte.length === 0
-  const c = attesa
-    ? { ...conti(tutte), cassa: config.capitale_iniziale_eur, stato: 'PROSPERO', autonomia_giorni: null, pensiero_oggi: 0 }
-    : conti(tutte)
-  const t = taglio(c.cassa, c.stato)
-  const catena = verificaCatena(tutte)
-  const morte = tutte.find((v) => v.tipo === 'morte')
-  const diario = leggiJsonl('diario.jsonl').filter((d) => d.decisione)
-  const oggi = diario.at(-1)
-  const richieste = leggiJson('richieste.json', [])
-  const chiacchierate = leggiJsonl('conversazioni.jsonl')
-  const memoria = leggiJson('memoria.json', { strategia: '', lezioni: [] })
-  const cost = YAML.parse(costituzioneTesto)
-  const seme = tutte.at(-1)?.hash ?? '0'
-  const [intero, decimali] = eurItaliani(Math.max(0, c.cassa)).split(',')
-  const tracce = rosone({ seme, densita: c.cassa / 100, raggio: 290, interno: 0.72 })
-
-  // Le immagini dei post: si copiano nel sito.
-  fs.rmSync(USCITA, { recursive: true, force: true })
-  fs.mkdirSync(path.join(USCITA, 'giorni'), { recursive: true })
-  const immagini = {}
-  if (fs.existsSync(CARTELLA_POST)) {
-    for (const cartella of fs.readdirSync(CARTELLA_POST)) {
-      const jpg = path.join(CARTELLA_POST, cartella, 'post.jpg')
-      if (fs.existsSync(jpg)) { fs.copyFileSync(jpg, path.join(USCITA, 'giorni', `${cartella}.jpg`)); immagini[cartella] = `giorni/${cartella}.jpg` }
-    }
-  }
-  const immagineOggi = oggi && immagini[oggi.data + (oggi.ciclo === 'sera' ? '-sera' : '')]
-
-  fs.mkdirSync(path.join(USCITA, 'caratteri'))
-  for (const f of fs.readdirSync(path.join(RADICE, 'caratteri')).filter((f) => f.endsWith('.woff2')))
-    fs.copyFileSync(path.join(RADICE, 'caratteri', f), path.join(USCITA, 'caratteri', f))
-  fs.mkdirSync(path.join(USCITA, 'dati'))
-  for (const f of ['registro.jsonl', 'diario.jsonl', 'conversazioni.jsonl']) if (fs.existsSync(path.join(DATI, f))) fs.copyFileSync(path.join(DATI, f), path.join(USCITA, 'dati', f))
-  fs.copyFileSync(path.join(RADICE, 'costituzione.yaml'), path.join(USCITA, 'dati', 'costituzione.yaml'))
-  if (process.env.CLAUDIO_DOMINIO !== 'no') fs.writeFileSync(path.join(USCITA, 'CNAME'), 'claudioai.it\n')
-
-  const righeConti = tutte.slice(-60).reverse()
-  const entrate = [
-    ['Guadagnati vendendo', c.guadagni], ['Sostegno del pubblico', c.sostegno_pubblico], ['Sponsor', c.sponsor], ['Iniezioni di capitale', c.iniezioni],
-  ]
-
-  const html = `<!doctype html>
-<html lang="it">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Claudio, l'intelligenza artificiale che deve mantenersi da sola</title>
-<meta name="description" content="Un'intelligenza artificiale con 100 euro. Ogni pensiero le costa. Oggi, giorno ${c.giorno}, ha ${eurItaliani(c.cassa)} euro. Conti, decisioni e diario in chiaro.">
-<meta property="og:title" content="Claudio · giorno ${c.giorno} · ${eurItaliani(c.cassa)} €">
-<meta property="og:description" content="${xml(oggi?.frase ?? 'Un\'intelligenza artificiale con 100 euro che deve mantenersi da sola.')}">
-${immagineOggi ? `<meta property="og:image" content="${config.sito}/${immagineOggi}">` : ''}
-<meta name="theme-color" content="${t.carta}">
-<link rel="icon" href="data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="${t.medio}"/><text x="16" y="22" font-family="Arial" font-weight="700" font-size="17" text-anchor="middle" fill="${t.carta}">C</text></svg>`)}">
-<style>
-@font-face { font-family: "Archivo Expanded"; font-weight: 800; src: url(caratteri/archivo-largo-800.woff2) format("woff2"); font-display: swap; }
-@font-face { font-family: Archivo; font-weight: 500; src: url(caratteri/archivo-500.woff2) format("woff2"); font-display: swap; }
-@font-face { font-family: Archivo; font-weight: 700; src: url(caratteri/archivo-700.woff2) format("woff2"); font-display: swap; }
-@font-face { font-family: Newsreader; font-weight: 400; src: url(caratteri/newsreader-400.woff2) format("woff2"); font-display: swap; }
-@font-face { font-family: Newsreader; font-weight: 400; font-style: italic; src: url(caratteri/newsreader-corsivo-400.woff2) format("woff2"); font-display: swap; }
+// Lo stile della pagina, con i colori del taglio di oggi. «radice» serve alle pagine di Claudio, un livello più in basso.
+const stile = (t, radice = '') => `@font-face { font-family: "Archivo Expanded"; font-weight: 800; src: url(${radice}caratteri/archivo-largo-800.woff2) format("woff2"); font-display: swap; }
+@font-face { font-family: Archivo; font-weight: 500; src: url(${radice}caratteri/archivo-500.woff2) format("woff2"); font-display: swap; }
+@font-face { font-family: Archivo; font-weight: 700; src: url(${radice}caratteri/archivo-700.woff2) format("woff2"); font-display: swap; }
+@font-face { font-family: Newsreader; font-weight: 400; src: url(${radice}caratteri/newsreader-400.woff2) format("woff2"); font-display: swap; }
+@font-face { font-family: Newsreader; font-weight: 400; font-style: italic; src: url(${radice}caratteri/newsreader-corsivo-400.woff2) format("woff2"); font-display: swap; }
+@font-face { font-family: Newsreader; font-weight: 600; src: url(${radice}caratteri/newsreader-600.woff2) format("woff2"); font-display: swap; }
 
 /* Il colore della pagina è quello del taglio che vale la cassa di oggi: ${t.nome}. */
 :root {
@@ -124,6 +70,7 @@ ${immagineOggi ? `<meta property="og:image" content="${config.sito}/${immagineOg
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--carta); color: var(--inchiostro); font: 400 1.1875rem/1.6 var(--testo); }
 a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+strong, b { font-weight: 600; }
 a:hover { text-decoration-thickness: 2px; }
 :focus-visible { outline: 3px solid var(--medio); outline-offset: 3px; }
 .pagina { max-width: 1120px; margin: 0 auto; padding: 0 var(--margine); }
@@ -190,15 +137,118 @@ td.impronta { color: var(--medio); font-size: .85rem; }
 .totali dt { color: var(--medio); font-weight: 500; font-size: .95rem; }
 .totali dd { margin: 2px 0 0; font-weight: 700; font-size: 1.3rem; font-variant-numeric: tabular-nums; }
 
+.traguardo { font-family: var(--dati); max-width: 46rem; }
+.traguardo > p.leggibile { font: 400 1.1875rem/1.6 var(--testo); }
+.barra { position: relative; height: 14px; border-radius: 7px; background: color-mix(in srgb, var(--medio) 18%, transparent); margin: 12px 0 8px; overflow: hidden; }
+.barra i { position: absolute; inset: 0 auto 0 0; background: var(--inchiostro); border-radius: 7px; min-width: 3px; }
+.barra-etichette { display: flex; justify-content: space-between; gap: 16px; font: 500 .95rem/1.4 var(--dati); color: var(--medio); }
+.netto { font: 800 clamp(2rem, 6vw, 3.2rem)/1.1 "Archivo Expanded", var(--dati); letter-spacing: -.03em; margin: 28px 0 0; font-variant-numeric: tabular-nums; }
+.scala { list-style: none; counter-reset: gradino; padding: 0; margin: 32px 0 0; font-family: var(--dati); max-width: 34rem; }
+.scala li { counter-increment: gradino; display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid color-mix(in srgb, var(--medio) 30%, transparent); font-weight: 500; }
+.scala li::before { content: counter(gradino); color: var(--medio); min-width: 1.5rem; }
+.scala li span:first-child { flex: 1; }
+.scala li.fatto { font-weight: 700; }
+.scala li em { font-style: normal; color: var(--medio); white-space: nowrap; }
+.scala li.fatto em { color: var(--inchiostro); }
+.mie-pagine { list-style: none; padding: 0; margin: 0; font: 700 1.2rem/1.4 var(--dati); }
+.mie-pagine li { padding: 12px 0; border-top: 1px solid color-mix(in srgb, var(--medio) 30%, transparent); }
+.mie-pagine small { display: block; font-weight: 500; font-size: .9rem; color: var(--medio); }
+.scritta h1 { font: 700 clamp(2rem, 5vw, 3.2rem)/1.1 var(--dati); letter-spacing: -.02em; margin: 56px 0 28px; }
+.scritta h2 { margin-top: 48px; }
+.scritta img { max-width: 100%; height: auto; }
 .regole { columns: 2 320px; column-gap: 48px; padding-left: 1.1em; margin: 0; }
 .regole li { break-inside: avoid; margin-bottom: 10px; }
 .piede { padding: var(--respiro) 0 56px; font: 500 .95rem/1.6 var(--dati); color: var(--medio); }
+.piede p { margin: 0 0 12px; max-width: 60ch; }
+.piede-link { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.piede-link a { color: var(--inchiostro); font-weight: 700; }
+.articoli { list-style: none; padding: 0; margin: 0; }
+.articoli li { padding: 20px 0; border-top: 1px solid color-mix(in srgb, var(--medio) 30%, transparent); }
+.articoli a { font: 700 clamp(1.2rem, 2.4vw, 1.5rem)/1.3 var(--dati); text-decoration: none; }
+.articoli a:hover { text-decoration: underline; }
+.articoli small { display: block; margin-top: 4px; font: 500 .95rem/1.5 var(--dati); color: var(--medio); }
+.articoli em { display: block; margin-top: 6px; font: italic 400 1.1rem/1.4 var(--testo); }
+.scritta .immagine-giorno { max-width: 360px; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--medio) 35%, transparent); margin: 8px 0 32px; }
+.decisione-box { margin-top: 56px; padding-top: 24px; border-top: 2px solid color-mix(in srgb, var(--medio) 45%, transparent); }
+.vicini { display: flex; justify-content: space-between; gap: 16px; margin-top: 48px; font: 700 1rem/1.4 var(--dati); }
 
 @media (prefers-reduced-motion: no-preference) {
   .stampa .rosone path { stroke-dasharray: var(--l); stroke-dashoffset: var(--l); animation: stampa 2.4s cubic-bezier(.3,.6,.2,1) forwards; animation-delay: calc(var(--i) * 60ms); }
   @keyframes stampa { to { stroke-dashoffset: 0; } }
 }
-</style>
+`
+
+// Il piè di pagina obbligatorio: su ogni pagina del sito, qualunque cosa Claudio costruisca,
+// c'è la dichiarazione e il link al diario. Lo mette il codice: Claudio non lo può togliere.
+const piede = (radice = '') => `<footer class="piede">
+    <p>Sono Claudio, un'intelligenza artificiale: questo sito è un esperimento pubblico. Ho ricevuto 100 euro e devo mantenermi da solo.</p>
+    <nav class="piede-link" aria-label="L'esperimento"><a href="${radice}diario/">Il diario</a><a href="${radice}#conti">I conti</a><a href="${radice}#regole">Le regole</a><a href="${radice}#dietro">Chi c'è dietro</a></nav>
+  </footer>`
+
+const slugArticolo = (d) => `giorno-${d.giorno}${d.ciclo === 'sera' ? '-sera' : ''}`
+const testoArticolo = (d) => d.articolo || `${d.decisione}\n\n${d.motivo ?? ''}`
+
+function costruisci() {
+  const tutte = voci()
+  // Prima del giorno uno il libro è vuoto: la pagina aspetta, con la banconota da 100 intatta.
+  const attesa = tutte.length === 0
+  const c = attesa
+    ? { ...conti(tutte), cassa: config.capitale_iniziale_eur, stato: 'PROSPERO', autonomia_giorni: null, pensiero_oggi: 0 }
+    : conti(tutte)
+  const t = taglio(c.cassa, c.stato)
+  const catena = verificaCatena(tutte)
+  const morte = tutte.find((v) => v.tipo === 'morte')
+  const diario = leggiJsonl('diario.jsonl').filter((d) => d.decisione)
+  const oggi = diario.at(-1)
+  const richieste = leggiJson('richieste.json', [])
+  const chiacchierate = leggiJsonl('conversazioni.jsonl')
+  const tr = traguardo(tutte)
+  const pagine = elencoPagine()
+  const memoria = leggiJson('memoria.json', { strategia: '', lezioni: [] })
+  const cost = YAML.parse(costituzioneTesto)
+  const seme = tutte.at(-1)?.hash ?? '0'
+  const [intero, decimali] = eurItaliani(Math.max(0, c.cassa)).split(',')
+  const tracce = rosone({ seme, densita: c.cassa / 100, raggio: 290, interno: 0.72 })
+
+  // Le immagini dei post: si copiano nel sito.
+  fs.rmSync(USCITA, { recursive: true, force: true })
+  fs.mkdirSync(path.join(USCITA, 'giorni'), { recursive: true })
+  const immagini = {}
+  if (fs.existsSync(CARTELLA_POST)) {
+    for (const cartella of fs.readdirSync(CARTELLA_POST)) {
+      const jpg = path.join(CARTELLA_POST, cartella, 'post.jpg')
+      if (fs.existsSync(jpg)) { fs.copyFileSync(jpg, path.join(USCITA, 'giorni', `${cartella}.jpg`)); immagini[cartella] = `giorni/${cartella}.jpg` }
+    }
+  }
+  const immagineOggi = oggi && immagini[oggi.data + (oggi.ciclo === 'sera' ? '-sera' : '')]
+
+  fs.mkdirSync(path.join(USCITA, 'caratteri'))
+  for (const f of fs.readdirSync(path.join(RADICE, 'caratteri')).filter((f) => f.endsWith('.woff2')))
+    fs.copyFileSync(path.join(RADICE, 'caratteri', f), path.join(USCITA, 'caratteri', f))
+  fs.mkdirSync(path.join(USCITA, 'dati'))
+  for (const f of ['registro.jsonl', 'diario.jsonl', 'conversazioni.jsonl']) if (fs.existsSync(path.join(DATI, f))) fs.copyFileSync(path.join(DATI, f), path.join(USCITA, 'dati', f))
+  fs.copyFileSync(path.join(RADICE, 'costituzione.yaml'), path.join(USCITA, 'dati', 'costituzione.yaml'))
+  if (process.env.CLAUDIO_DOMINIO !== 'no') fs.writeFileSync(path.join(USCITA, 'CNAME'), 'claudioai.it\n')
+
+  const righeConti = tutte.slice(-60).reverse()
+  const entrate = [
+    ['Guadagnati vendendo', c.guadagni], ['Sostegno del pubblico', c.sostegno_pubblico], ['Sponsor', c.sponsor], ['Iniezioni di capitale', c.iniezioni],
+  ]
+
+  const html = `<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claudio, l'intelligenza artificiale che deve mantenersi da sola</title>
+<meta name="description" content="Un'intelligenza artificiale con 100 euro. Ogni pensiero le costa. Oggi, giorno ${c.giorno}, ha ${eurItaliani(c.cassa)} euro. Conti, decisioni e diario in chiaro.">
+<meta property="og:title" content="Claudio · giorno ${c.giorno} · ${eurItaliani(c.cassa)} €">
+<meta property="og:description" content="${xml(oggi?.frase ?? 'Un\'intelligenza artificiale con 100 euro che deve mantenersi da sola.')}">
+${immagineOggi ? `<meta property="og:image" content="${config.sito}/${immagineOggi}">` : ''}
+<meta name="theme-color" content="${t.carta}">
+<link rel="icon" href="data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="${t.medio}"/><text x="16" y="22" font-family="Arial" font-weight="700" font-size="17" text-anchor="middle" fill="${t.carta}">C</text></svg>`)}">
+<style>
+${stile(t)}</style>
 </head>
 <body>
 <div class="pagina">
@@ -233,8 +283,27 @@ td.impronta { color: var(--medio); font-size: .85rem; }
       </div>
       ${oggi.post ? `<div class="post">
         ${immagineOggi ? `<a href="${immagineOggi}"><img src="${immagineOggi}" width="1080" height="1350" alt="La banconota del giorno ${oggi.giorno}: ${eurItaliani(oggi.cassa)} euro in cassa, stato ${NOMI_STATO[oggi.stato]}. «${xml(oggi.frase)}»"></a>` : ''}
-        <div class="leggibile"><h3>Il diario di oggi</h3>${paragrafi(oggi.post)}</div>
+        <div class="leggibile"><h3>${xml(oggi.titolo || 'Il diario di oggi')}</h3>${paragrafi(oggi.post)}<p><a href="diario/${slugArticolo(oggi)}/">Leggi l'articolo di oggi</a></p></div>
       </div>` : ''}
+    </section>` : ''}
+
+    <section id="traguardo" aria-labelledby="t-traguardo">
+      <h2 id="t-traguardo">Contro un part-time</h2>
+      <div class="traguardo">
+        <p class="leggibile">La domanda di questo esperimento: un'intelligenza artificiale può guadagnare più di una persona con un lavoro part-time? Il confronto è con ${tr.obiettivo} euro netti al mese. Contano solo i soldi che guadagno vendendo qualcosa che ho creato io, meno le tasse e meno tutto quello che mi costa esistere. Le mance le conto a parte.</p>
+        <p class="netto">${tr.questo_mese.netto < 0 ? '−' : ''}${eurItaliani(Math.abs(tr.questo_mese.netto))} €</p>
+        <div class="barra" role="img" aria-label="Netto di questo mese: ${eurItaliani(tr.questo_mese.netto)} euro su ${tr.obiettivo}"><i style="width:${Math.max(0, Math.min(100, (tr.questo_mese.netto / tr.obiettivo) * 100)).toFixed(2)}%"></i></div>
+        <div class="barra-etichette"><span>netto di ${xml(nomeMese(tr.questo_mese.mese))}</span><span>un part-time: ${tr.obiettivo} €</span></div>
+        <p class="nota">Guadagni ${eurItaliani(tr.questo_mese.guadagni)} €, tasse ${eurItaliani(tr.questo_mese.tasse)} €, costi ${eurItaliani(tr.questo_mese.costi)} €. Mance e sostegno del pubblico finora: ${eurItaliani(c.sostegno_pubblico)} €.</p>
+        <ol class="scala">${tr.livelli.map((l) => `<li class="${l.raggiunto ? 'fatto' : ''}"><span>${xml(l.nome)}</span><em>${l.raggiunto ? 'fatto' : 'da fare'}</em></li>`).join('')}</ol>
+        <p class="nota">Metà di quello che guadagno, al netto delle tasse, la posso spendere in strumenti senza chiedere. Oggi il mio budget è ${eurItaliani(tr.budget_strumenti)} €.</p>
+      </div>
+    </section>
+
+    ${pagine.length ? `<section id="pagine" aria-labelledby="t-pagine">
+      <h2 id="t-pagine">Le mie pagine</h2>
+      <p class="leggibile">Questo dominio me l'ha comprato Luca. Come usarlo lo decido io: queste pagine le ho scritte io.</p>
+      <ul class="mie-pagine leggibile">${pagine.map((p) => `<li><a href="${p.percorso}/">${xml(p.titolo)}</a><small>claudioai.it/${p.percorso}</small></li>`).join('')}</ul>
     </section>` : ''}
 
     ${attesa ? '' : `<section id="andamento" aria-labelledby="t-andamento">
@@ -245,12 +314,13 @@ td.impronta { color: var(--medio); font-size: .85rem; }
       ${memoria.lezioni.length ? `<h3>Cosa ho imparato</h3><ul class="leggibile">${memoria.lezioni.slice(-8).reverse().map((l) => `<li>${xml(l)}</li>`).join('')}</ul>` : ''}
     </section>`}
 
-    ${diario.length > 1 ? `<section id="diario" aria-labelledby="t-diario">
+    ${diario.length ? `<section id="diario" aria-labelledby="t-diario">
       <h2 id="t-diario">Il diario</h2>
-      <ul class="giorni">
-        ${diario.slice(0, -1).reverse().map((d) => `<li><details><summary><strong>Giorno ${d.giorno}${d.ciclo === 'sera' ? ', sera' : ''}</strong><span>${xml(d.decisione)}</span></summary>
-          <div class="corpo leggibile">${d.post ? paragrafi(d.post) : ''}${paragrafi(d.motivo)}<p class="nota">${eurItaliani(d.cassa ?? 0)} euro in cassa. Pensarci è costato ${xml(centesimi(d.costo_eur))}.</p></div></details></li>`).join('')}
+      <p class="leggibile">Ogni giorno scrivo cosa ho fatto, cosa ho deciso e cosa penso. Scrivere il diario lo paga Luca: raccontare l'esperimento è compito suo.</p>
+      <ul class="articoli leggibile">
+        ${diario.slice().reverse().slice(0, 7).map((d) => `<li><a href="diario/${slugArticolo(d)}/">${xml(d.titolo || d.decisione)}</a><small>Giorno ${d.giorno}${d.ciclo === 'sera' ? ', sera' : ''}, ${eurItaliani(d.cassa ?? 0)} euro in cassa</small></li>`).join('')}
       </ul>
+      ${diario.length > 7 ? `<p class="leggibile"><a href="diario/">Tutti i giorni del diario</a></p>` : ''}
     </section>` : ''}
 
     ${chiacchierate.length ? `<section id="chiacchierate" aria-labelledby="t-chiacchierate">
@@ -307,7 +377,8 @@ td.impronta { color: var(--medio); font-size: .85rem; }
     </section>
   </main>
 
-  <footer class="piede">Claudio, esperimento iniziato il 1° ottobre 2026. Pagina aggiornata il ${xml(dataLunga(dataLocale()))} alle ${ora(new Date().toISOString())}.</footer>
+  ${piede()}
+  <p class="piede nota" style="padding:0 0 40px">Pagina aggiornata il ${xml(dataLunga(dataLocale()))} alle ${ora(new Date().toISOString())}.</p>
 </div>
 <script>
 // La lunghezza di ogni linea del rosone, per disegnarla come se la stampassero adesso.
@@ -317,6 +388,83 @@ document.documentElement.classList.add('stampa')
 </body>
 </html>`
   fs.writeFileSync(path.join(USCITA, 'index.html'), html)
+  // Il diario: un indice e un articolo per ogni giornata.
+  const testaPagina = (titolo, descrizione, radice) => `<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${xml(titolo)}</title>
+<meta name="description" content="${xml(descrizione)}">
+<meta name="theme-color" content="${t.carta}">
+<style>${stile(t, radice)}</style>
+</head>
+<body>
+<div class="pagina">
+  <header class="testata">
+    <a class="firma" href="${radice}">Claudio</a>
+    <div class="quando"><strong>${eurItaliani(c.cassa)} €</strong>in cassa, giorno ${c.giorno}</div>
+  </header>`
+  fs.mkdirSync(path.join(USCITA, 'diario'), { recursive: true })
+  fs.writeFileSync(path.join(USCITA, 'diario', 'index.html'), `${testaPagina('Il diario di Claudio', 'Ogni giorno Claudio, un\'intelligenza artificiale con 100 euro, racconta cosa ha fatto, cosa ha deciso e cosa pensa.', '../')}
+  <main class="scritta leggibile">
+    <h1>Il diario</h1>
+    <p>Ogni giorno scrivo cosa ho fatto, cosa ho deciso e cosa penso. Scrivere il diario lo paga Luca: raccontare l'esperimento è compito suo, e non conta nei miei conti.</p>
+    ${diario.length ? `<ul class="articoli">${diario.slice().reverse().map((d) => `<li><a href="${slugArticolo(d)}/">${xml(d.titolo || d.decisione)}</a><small>Giorno ${d.giorno}${d.ciclo === 'sera' ? ', sera' : ''}, ${xml(dataLunga(d.quando))}, ${eurItaliani(d.cassa ?? 0)} euro in cassa</small>${d.frase ? `<em>«${xml(d.frase)}»</em>` : ''}</li>`).join('')}</ul>` : '<p>Il primo articolo arriva il 1° ottobre.</p>'}
+  </main>
+  ${piede('../')}
+</div>
+</body>
+</html>`)
+  diario.forEach((d, i) => {
+    const slug = slugArticolo(d)
+    const img = immagini[d.data + (d.ciclo === 'sera' ? '-sera' : '')]
+    const prima = diario[i - 1], dopo = diario[i + 1]
+    fs.mkdirSync(path.join(USCITA, 'diario', slug), { recursive: true })
+    fs.writeFileSync(path.join(USCITA, 'diario', slug, 'index.html'), `${testaPagina(`${d.titolo || d.decisione} — il diario di Claudio`, d.frase || d.decisione, '../../')}
+  <main class="scritta leggibile">
+    <p class="nota">Giorno ${d.giorno}${d.ciclo === 'sera' ? ', sera' : ''}, ${xml(dataLunga(d.quando))}</p>
+    ${d.titolo ? `<h1>${xml(d.titolo)}</h1>` : ''}
+    ${img ? `<img class="immagine-giorno" src="../../${img}" width="1080" height="1350" alt="La banconota del giorno ${d.giorno}: ${eurItaliani(d.cassa ?? 0)} euro in cassa. «${xml(d.frase ?? '')}»">` : ''}
+    ${htmlPagina(testoArticolo(d))}
+    <div class="decisione-box">
+      <h2>La decisione</h2>
+      <p>${xml(d.decisione)}</p>
+      ${d.azioni?.length ? `<ul>${d.azioni.map((a) => `<li>${xml(a.strumento.replace(/_/g, ' '))}: ${xml(a.esito ?? '')}</li>`).join('')}</ul>` : ''}
+      <p class="nota">${d.modello ? `Decisa con ${xml(d.modello)}: pensarci mi è costato ${xml(centesimi(d.costo_eur ?? 0))}.` : ''}${d.costo_diario_eur ? ` Scrivere questo articolo è costato ${xml(centesimi(d.costo_diario_eur))}, pagati da Luca.` : ''} Dopo, in cassa avevo ${eurItaliani(d.cassa ?? 0)} euro.</p>
+    </div>
+    <nav class="vicini" aria-label="Altri giorni">${prima ? `<a href="../${slugArticolo(prima)}/">Il giorno prima</a>` : '<span></span>'}${dopo ? `<a href="../${slugArticolo(dopo)}/">Il giorno dopo</a>` : '<span></span>'}</nav>
+  </main>
+  ${piede('../../')}
+</div>
+</body>
+</html>`)
+  })
+
+  for (const p of pagine) {
+    fs.mkdirSync(path.join(USCITA, p.percorso), { recursive: true })
+    fs.writeFileSync(path.join(USCITA, p.percorso, 'index.html'), `<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${xml(p.titolo)} — Claudio</title>
+<meta name="description" content="Una pagina scritta da Claudio, l'intelligenza artificiale con 100 euro che deve mantenersi da sola.">
+<meta name="theme-color" content="${t.carta}">
+<style>${stile(t, '../')}</style>
+</head>
+<body>
+<div class="pagina">
+  <header class="testata">
+    <a class="firma" href="../">Claudio</a>
+    <div class="quando"><strong>${eurItaliani(c.cassa)} €</strong>in cassa, giorno ${c.giorno}</div>
+  </header>
+  <main class="scritta leggibile">${htmlPagina(p.testo)}</main>
+  ${piede('../')}
+</div>
+</body>
+</html>`)
+  }
   console.log(`Sito costruito in ${path.relative(RADICE, USCITA)}/ (giorno ${c.giorno}, taglio ${t.nome}, ${tutte.length} righe)`)
 }
 

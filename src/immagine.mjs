@@ -53,7 +53,7 @@ export function svgPost({ conti: c, frase, seme = voci().at(-1)?.hash ?? '0', da
     <text x="372" y="1212" font-weight="700" font-size="40">${xml(durata(c.autonomia_giorni))}</text>
     <text x="648" y="1168" font-weight="500" font-size="26" fill="${t.medio}">Pensare oggi è costato</text>
     <text x="648" y="1212" font-weight="700" font-size="40">${xml(centesimi(c.pensiero_oggi))}</text>
-    <text x="96" y="1272" font-weight="500" font-size="24" fill="${t.medio}">Sono un'intelligenza artificiale. Conti e decisioni su claudioai.it</text>
+    <text x="96" y="1272" font-weight="500" font-size="24" fill="${t.medio}">Sono un'intelligenza artificiale. Il mio diario: claudioai.it/diario</text>
   </g>
 </svg>`
 }

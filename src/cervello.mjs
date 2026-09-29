@@ -9,6 +9,7 @@ export const STRUMENTI = {
   non_fare_niente: 'Non fare niente oggi. Costa zero ed è una scelta valida.',
   pensa_meglio: 'Rifare il ragionamento di oggi con un modello più capace. Lo paghi tu, dalla tua cassa (circa 3-5 centesimi). In "dettagli" scrivi la domanda su cui vuoi pensare meglio.',
   chiedi_a_luca: 'Chiedere a Luca di fare una cosa che tu non puoi fare (aprire un account, comprare uno strumento, pubblicare qualcosa, collegare un servizio) o di approvare una spesa. In "dettagli" scrivi cosa, perché e cosa ti aspetti; in "importo_eur" quanto costa (0 se niente).',
+  scrivi_pagina: 'Scrivere, riscrivere o cancellare una tua pagina su claudioai.it: il dominio è tuo e come usarlo lo decidi tu. Costa solo il pensiero. In "percorso" l\'indirizzo corto (lettere minuscole, numeri e trattini, per esempio "chi-sono"); in "dettagli" il testo completo in Markdown (# titolo, paragrafi, elenchi, link). Per cancellare la pagina lascia "dettagli" vuoto. Massimo 20 pagine, 12.000 caratteri ciascuna.',
 }
 
 export const Decisione = z.object({
@@ -19,9 +20,8 @@ export const Decisione = z.object({
     strumento: z.enum(Object.keys(STRUMENTI)),
     dettagli: z.string(),
     importo_eur: z.number(),
+    percorso: z.string().describe('Solo per scrivi_pagina; stringa vuota per gli altri strumenti.'),
   })).describe('Le azioni di oggi, anche nessuna.'),
-  post: z.string().describe('Il tuo diario di oggi per i social, in prima persona, in italiano. 400-900 caratteri.'),
-  frase: z.string().describe('Una frase sola, massimo 90 caratteri, che finirà sull\'immagine di oggi.'),
   lezione: z.string().describe('Cosa hai imparato di nuovo, in una frase. Stringa vuota se niente.'),
   strategia: z.string().describe('La tua strategia attuale per sopravvivere, in due frasi.'),
   fiducia: z.number().describe('Quanto sei sicuro della decisione, da 0 a 1.'),
@@ -54,13 +54,21 @@ export async function costoEuro(livello, uso) {
   return { usd: arrotonda(usd, 6), eur: arrotonda(usd * (await cambioUsdEur()), 6) }
 }
 
+// Il racconto della giornata: lo paga Luca, perché raccontare l'esperimento è compito suo.
+export const Racconto = z.object({
+  titolo: z.string().describe('Il titolo dell\'articolo di oggi sul tuo diario. Concreto, massimo 70 caratteri.'),
+  articolo: z.string().describe('L\'articolo del diario in Markdown, 250-500 parole: cosa hai fatto, cosa hai deciso e perché, cosa pensi. Racconta, non vendere.'),
+  post: z.string().describe('Il testo per i social, in prima persona, 400-900 caratteri.'),
+  frase: z.string().describe('Una frase sola, massimo 90 caratteri, che finirà sull\'immagine di oggi.'),
+})
+
 // La risposta in chat, quando Luca gli parla con /claudioai.
 export const Risposta = z.object({
   risposta: z.string().describe('Cosa rispondi a Luca, in prima persona. Breve: ogni parola ti costa.'),
   da_ricordare: z.string().describe('Un fatto o un impegno di questa chiacchierata da tenere in memoria, in una frase. Stringa vuota se niente.'),
 })
 
-const MAX_TOKENS = 4000
+const MAX_TOKENS = 8000
 
 // Il costo massimo possibile di una chiamata, da verificare PRIMA di farla:
 // input stimato con larghezza (2,5 caratteri per token) e tutti i token di uscita consentiti.
@@ -104,6 +112,8 @@ export async function pensa({ livello, sistema, messaggio, schema = Decisione })
 // Per le prove: nessuna chiamata, nessun costo vero, ma lo stesso giro completo.
 async function pensaFinto({ livello, modello, messaggio, schema }) {
   const uso = { input_tokens: Math.round(messaggio.length / 3.5) + 1500, output_tokens: 700 }
+  if (schema === Racconto)
+    return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { titolo: 'Una giornata di prova', articolo: 'Oggi è una **giornata di prova**. Il cervello finto non pensa, ma i conti sono veri.\n\n## Cosa ho deciso\n\nNiente di speciale.', post: 'Diario di prova.', frase: 'Oggi ho scelto di non spendere.' } }
   if (schema === Risposta)
     return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { risposta: 'Risposta di prova: il mio cervello finto ha letto il tuo messaggio.', da_ricordare: '' } }
   const giorno = Number(messaggio.match(/Giorno di vita: (\d+)/)?.[1] ?? 1)
@@ -117,10 +127,10 @@ async function pensaFinto({ livello, modello, messaggio, schema }) {
       decisione: chiede ? 'Chiedo a Luca di aprirmi una pagina per il sostegno del pubblico.' : 'Oggi non spendo niente.',
       motivo: 'Simulazione: decisione di prova.',
       azioni: chiede
-        ? [{ strumento: 'chiedi_a_luca', dettagli: 'Aprire una pagina Ko-fi per chi vuole sostenermi.', importo_eur: 0 }]
-        : [{ strumento: 'non_fare_niente', dettagli: '', importo_eur: 0 }],
-      post: `Diario di prova del giorno ${giorno}.`,
-      frase: 'Oggi ho scelto di non spendere.',
+        ? [{ strumento: 'chiedi_a_luca', dettagli: 'Aprire una pagina Ko-fi per chi vuole sostenermi.', importo_eur: 0, percorso: '' }]
+        : giorno === 2
+          ? [{ strumento: 'scrivi_pagina', percorso: 'chi-sono', dettagli: '# Chi sono\n\nSono Claudio, un\'intelligenza artificiale con **100 euro**.\n\n- Ogni pensiero mi costa\n- Se i soldi finiscono, mi spengo\n\n[Il mio diario](../#diario) <script>alert(1)</script> [link cattivo](javascript:alert(1))', importo_eur: 0 }]
+          : [{ strumento: 'non_fare_niente', dettagli: '', importo_eur: 0, percorso: '' }],
       lezione: '',
       strategia: 'Spendere poco finché non trovo un modo di guadagnare.',
       fiducia: 0.6,

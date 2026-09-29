@@ -27,6 +27,9 @@ sostegno_vitale:
   # Categorie di costo che paga Luca durante il sostegno. Tutto il resto lo paga Claudio.
   copre: [respiro, infrastruttura]
 
+# Costi che paga sempre Luca, anche dopo il sostegno: raccontare l'esperimento è compito suo.
+pagati_da_luca: [diario]
+
 # Stati di sopravvivenza: mesi di autonomia se il sostegno finisse oggi.
 stati:
   - { nome: PROSPERO, sopra_mesi: 12 }
@@ -41,8 +44,10 @@ capitale_iniziale_eur: 100
 # Stima prudente, da confermare col commercialista. Le iniezioni (doni senza attività) sono escluse.
 tasse_su_incassi: 0.24
 
-# Sopra questa cifra ogni spesa passa dall'approvazione di Luca.
-soglia_approvazione_eur: 10
+# Il traguardo: più di un part-time. Netto del mese = guadagni − tasse su quei guadagni − tutti i costi.
+traguardo_eur: 900
+# Quota dei guadagni netti che Claudio può spendere in strumenti senza chiedere.
+reinvestimento_quota: 0.5
 
 # Quanto costa in media un giorno di respiro, finché non ci sono dati veri.
 respiro_stimato_eur_giorno: 0.03

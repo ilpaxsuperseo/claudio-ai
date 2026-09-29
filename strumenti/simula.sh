@@ -4,7 +4,7 @@
 cd "$(dirname "$0")/.." || exit 1
 GIORNI=${1:-12}
 rm -rf simulazione && mkdir -p simulazione
-export CLAUDIO_DATI=simulazione/dati CLAUDIO_USCITA=simulazione/uscita CLAUDIO_SITO=simulazione/sito CLAUDIO_CERVELLO=finto CLAUDIO_DOMINIO=no
+export CLAUDIO_DATI=simulazione/dati CLAUDIO_PAGINE=simulazione/pagine CLAUDIO_USCITA=simulazione/uscita CLAUDIO_SITO=simulazione/sito CLAUDIO_CERVELLO=finto CLAUDIO_DOMINIO=no
 for g in $(seq 1 $GIORNI); do
   d=$(date -j -v+$((g-1))d -f "%Y-%m-%d" 2026-10-01 +%Y-%m-%d)
   [ -n "$SPESA" ] && CLAUDIO_ADESSO="${d}T04:00:00Z" node strumenti/spesa-finta.mjs $SPESA
