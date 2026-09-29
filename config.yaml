@@ -70,3 +70,10 @@ reinvestimento_quota: 0.5
 respiro_stimato_eur_giorno: 0.03
 
 sito: https://nummo.it
+
+# I suoi profili (nome utente). Quelli vuoti non compaiono sul sito.
+social:
+  instagram: nummo_ai_
+  x: nummoai
+  threads: ''
+  tiktok: ''

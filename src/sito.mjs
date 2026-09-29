@@ -187,7 +187,7 @@ td.impronta { color: var(--medio); font-size: .85rem; }
 // c'è la dichiarazione e il link al diario. Lo mette il codice: Nummo non lo può togliere.
 const piede = (radice = '') => `<footer class="piede">
     <p>Sono Nummo, un'intelligenza artificiale: questo sito è un esperimento pubblico. Ho ricevuto 100 euro e devo mantenermi da solo.</p>
-    <nav class="piede-link" aria-label="L'esperimento"><a href="${radice}diario/">Il diario</a><a href="${radice}${CONTI}#conti">I conti</a><a href="${radice}${CONTI}#regole">Le regole</a><a href="${radice}${CONTI}#dietro">Chi c'è dietro</a></nav>
+    <nav class="piede-link" aria-label="L'esperimento"><a href="${radice}diario/">Il diario</a><a href="${radice}${CONTI}#conti">I conti</a><a href="${radice}${CONTI}#regole">Le regole</a><a href="${radice}${CONTI}#dietro">Chi c'è dietro</a>${profili().map((p) => `<a href="${p.url}" rel="me noopener">${p.nome} @${xml(p.utente)}</a>`).join('')}</nav>
   </footer>`
 
 // Nelle pagine HTML di Nummo il piè di pagina porta con sé lo stile, e resiste al suo CSS.
@@ -195,7 +195,7 @@ const piedeInIniezione = (radice) => {
   const a = (href, testo) => `<a href="${radice}${href}" style="color:#1d1d1b !important;font-weight:700 !important;margin:0 18px 0 0 !important;text-decoration:underline !important">${testo}</a>`
   return `<footer data-nummo-piede style="all:initial;display:block !important;visibility:visible !important;opacity:1 !important;position:static !important;box-sizing:border-box;margin:48px 0 0;padding:20px 16px;border-top:1px solid #8886;background:#ffffff;color:#1d1d1b;font:500 15px/1.55 system-ui,-apple-system,'Segoe UI',Arial,sans-serif">
 <p style="margin:0 0 8px !important;color:#1d1d1b !important">Sono Nummo, un'intelligenza artificiale: questo sito è un esperimento pubblico. Ho ricevuto 100 euro e devo mantenermi da solo.</p>
-${a('diario/', 'Il diario')}${a(`${CONTI}#conti`, 'I conti')}${a(`${CONTI}#regole`, 'Le regole')}${a(`${CONTI}#dietro`, "Chi c'è dietro")}
+${a('diario/', 'Il diario')}${a(`${CONTI}#conti`, 'I conti')}${a(`${CONTI}#regole`, 'Le regole')}${a(`${CONTI}#dietro`, "Chi c'è dietro")}${profili().map((p) => `<a href="${p.url}" rel="me noopener" style="color:#1d1d1b !important;font-weight:700 !important;margin:0 18px 0 0 !important;text-decoration:underline !important">${p.nome} @${xml(p.utente)}</a>`).join('')}
 </footer>`
 }
 
@@ -208,6 +208,11 @@ function tuttiIFile(cartella, base = cartella) {
   return fs.readdirSync(cartella, { withFileTypes: true }).flatMap((e) =>
     e.name.startsWith('.') ? [] : e.isDirectory() ? tuttiIFile(path.join(cartella, e.name), base) : [path.relative(base, path.join(cartella, e.name))])
 }
+
+// I profili social, dal config: solo quelli già aperti.
+const INDIRIZZI_SOCIAL = { instagram: (u) => `https://www.instagram.com/${u}/`, x: (u) => `https://x.com/${u}`, threads: (u) => `https://www.threads.net/@${u}`, tiktok: (u) => `https://www.tiktok.com/@${u}` }
+const NOMI_SOCIAL = { instagram: 'Instagram', x: 'X', threads: 'Threads', tiktok: 'TikTok' }
+const profili = () => Object.entries(config.social ?? {}).filter(([, u]) => u).map(([rete, u]) => ({ rete, nome: NOMI_SOCIAL[rete], utente: u, url: INDIRIZZI_SOCIAL[rete](u) }))
 
 const slugArticolo = (d) => `giorno-${d.giorno}`
 // I risvegli in più di una giornata: note dentro l'articolo di quel giorno.
