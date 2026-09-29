@@ -71,9 +71,14 @@ respiro_stimato_eur_giorno: 0.03
 
 sito: https://nummo.it
 
+# Metricool: il brand di Nummo nell'account di Luca (senza clienti). Solo questo brand, mai gli altri.
+metricool:
+  user_id: '4937673'
+  blog_id: '7149621'
+
 # I suoi profili (nome utente). Quelli vuoti non compaiono sul sito.
 social:
-  instagram: nummo_ai_
+  instagram: nummo.ai_
   x: nummoai
   threads: ''
   tiktok: ''
