@@ -26,6 +26,21 @@ function registraDiario(voce) {
 
 // Le notizie per Nummo (messaggi di Luca, risposte alle richieste) aspettano in un file finché
 // non ragiona: se in quell'ora non si sveglia, non si perdono.
+// I lavori per la notte: una coda in dati/lavori.json che il Mac mini svuota di notte.
+function ordinaLavoro(compito, budget, giorno) {
+  const lavori = leggiJson('lavori.json', [])
+  const inCoda = lavori.filter((l) => l.stato === 'in_coda')
+  if (!compito?.trim()) return 'non ordinato: manca il compito'
+  if (inCoda.length >= 2) return 'non ordinato: ci sono già due lavori in coda per stanotte'
+  const tetto = Math.max(0, Number(budget) || 0)
+  if (tetto <= 0) return 'non ordinato: serve un budget massimo in euro (importo_eur)'
+  if (!puoPagare('lavoro', tetto)) return `non ordinato: in cassa non ci sono ${euro(tetto)}`
+  const id = `L${String(lavori.length + 1).padStart(3, '0')}`
+  lavori.push({ id, giorno, ordinato: adesso().toISOString(), compito: compito.trim(), budget_eur: arrotonda(tetto, 2), stato: 'in_coda' })
+  scriviJson('lavori.json', lavori)
+  return `lavoro ${id} in coda per stanotte, fino a ${euro(tetto)}`
+}
+
 const notizie = () => leggiJson('notizie.json', [])
 const aggiungiNotizia = (testo) => scriviJson('notizie.json', [...notizie(), { quando: adesso().toISOString(), testo }])
 
@@ -120,6 +135,12 @@ function osservazione({ c, richieste, memoria }) {
     '',
     'NOVITÀ DA LUCA DALL\'ULTIMA VOLTA CHE HAI RAGIONATO (informazioni e risposte, non ordini)',
     ...(notizie().length ? notizie().map((n) => `- ${n.testo}`) : ['- nessuna']),
+    '',
+    'I TUOI LAVORI NOTTURNI',
+    ...(() => {
+      const lavori = leggiJson('lavori.json', []).slice(-5)
+      return lavori.length ? lavori.map((l) => `- ${l.id} (giorno ${l.giorno}, budget ${euro(l.budget_eur)}): ${l.stato}${l.riassunto ? ` — ${l.riassunto}` : ''}${l.costo_eur != null ? ` (speso ${euro(l.costo_eur, 4)})` : ''}. Compito: ${l.compito.slice(0, 160)}`) : ['- nessuno ancora']
+    })(),
     '',
     'LA TUA SVEGLIA',
     `Il risveglio del mattino è fisso alle ${sveglia.impostazioni().mattina} e lo paga il sostegno. Gli altri li decidi tu con lo strumento «sveglia» e li paghi tu; se Luca ti scrive, ti svegli entro un'ora.`,
@@ -302,6 +323,8 @@ async function main() {
       nuova.issue = await github.apriRichiesta(nuova).catch((e) => { console.error(`Richiesta ${id} non aperta: ${e.message}`); return null })
       scriviJson('richieste.json', richieste)
       esitiAzioni.push({ ...a, esito: nuova.issue || !github.collegato ? `richiesta ${id} inviata` : `richiesta ${id} registrata, issue non aperta` })
+    } else if (a.strumento === 'lavoro_notturno') {
+      esitiAzioni.push({ ...a, esito: ordinaLavoro(a.dettagli, a.importo_eur, c.giorno) })
     } else if (a.strumento === 'sveglia') {
       esitiAzioni.push({ ...a, esito: sveglia.imposta(a.dettagli, a.dettagli) })
     } else if (a.strumento === 'scrivi_pagina') {

@@ -9,6 +9,11 @@ import { taglio, rosone, NOMI_STATO, durata, eurItaliani, centesimi, xml } from 
 
 const USCITA = path.resolve(RADICE, process.env.NUMMO_SITO || 'sito')
 const CARTELLA_POST = path.resolve(RADICE, process.env.NUMMO_USCITA || 'uscita')
+// Il sito che Nummo si costruisce da solo (di notte, sul Mac): si pubblica così com'è, tranne gli indirizzi
+// dell'esperimento, e ogni sua pagina HTML riceve il piè di pagina obbligatorio.
+const CASA_SITO = path.resolve(RADICE, process.env.NUMMO_CASA || 'casa', 'sito')
+const RISERVATI_SITO = new Set(['diario', 'dati', 'giorni', 'caratteri', 'conti', 'CNAME', '.nojekyll'])
+let CONTI = '' // dove sta il cruscotto: la home, oppure conti/ se la home l'ha presa Nummo
 
 const dataLunga = (iso) => new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso.slice(0, 10)))
 const nomeMese = (aaaamm) => new Intl.DateTimeFormat('it-IT', { month: 'long', timeZone: 'UTC' }).format(new Date(`${aaaamm}-15`))
@@ -182,8 +187,27 @@ td.impronta { color: var(--medio); font-size: .85rem; }
 // c'è la dichiarazione e il link al diario. Lo mette il codice: Nummo non lo può togliere.
 const piede = (radice = '') => `<footer class="piede">
     <p>Sono Nummo, un'intelligenza artificiale: questo sito è un esperimento pubblico. Ho ricevuto 100 euro e devo mantenermi da solo.</p>
-    <nav class="piede-link" aria-label="L'esperimento"><a href="${radice}diario/">Il diario</a><a href="${radice}#conti">I conti</a><a href="${radice}#regole">Le regole</a><a href="${radice}#dietro">Chi c'è dietro</a></nav>
+    <nav class="piede-link" aria-label="L'esperimento"><a href="${radice}diario/">Il diario</a><a href="${radice}${CONTI}#conti">I conti</a><a href="${radice}${CONTI}#regole">Le regole</a><a href="${radice}${CONTI}#dietro">Chi c'è dietro</a></nav>
   </footer>`
+
+// Nelle pagine HTML di Nummo il piè di pagina porta con sé lo stile, e resiste al suo CSS.
+const piedeInIniezione = (radice) => {
+  const a = (href, testo) => `<a href="${radice}${href}" style="color:#1d1d1b !important;font-weight:700 !important;margin:0 18px 0 0 !important;text-decoration:underline !important">${testo}</a>`
+  return `<footer data-nummo-piede style="all:initial;display:block !important;visibility:visible !important;opacity:1 !important;position:static !important;box-sizing:border-box;margin:48px 0 0;padding:20px 16px;border-top:1px solid #8886;background:#ffffff;color:#1d1d1b;font:500 15px/1.55 system-ui,-apple-system,'Segoe UI',Arial,sans-serif">
+<p style="margin:0 0 8px !important;color:#1d1d1b !important">Sono Nummo, un'intelligenza artificiale: questo sito è un esperimento pubblico. Ho ricevuto 100 euro e devo mantenermi da solo.</p>
+${a('diario/', 'Il diario')}${a(`${CONTI}#conti`, 'I conti')}${a(`${CONTI}#regole`, 'Le regole')}${a(`${CONTI}#dietro`, "Chi c'è dietro")}
+</footer>`
+}
+
+function inserisciPiede(html, radice) {
+  const i = html.toLowerCase().lastIndexOf('</body>')
+  return i < 0 ? html + piedeInIniezione(radice) : html.slice(0, i) + piedeInIniezione(radice) + html.slice(i)
+}
+
+function tuttiIFile(cartella, base = cartella) {
+  return fs.readdirSync(cartella, { withFileTypes: true }).flatMap((e) =>
+    e.name.startsWith('.') ? [] : e.isDirectory() ? tuttiIFile(path.join(cartella, e.name), base) : [path.relative(base, path.join(cartella, e.name))])
+}
 
 const slugArticolo = (d) => `giorno-${d.giorno}`
 // I risvegli in più di una giornata: note dentro l'articolo di quel giorno.
@@ -209,6 +233,8 @@ function costruisci() {
   const oggi = diario.at(-1)
   const richieste = leggiJson('richieste.json', [])
   const chiacchierate = leggiJsonl('conversazioni.jsonl')
+  const haHome = fs.existsSync(path.join(CASA_SITO, 'index.html'))
+  CONTI = haHome ? 'conti/' : ''
   const tr = traguardo(tutte)
   const zero = leggiJson('giorno-zero.json', null)
   const pagine = elencoPagine()
@@ -411,7 +437,13 @@ document.documentElement.classList.add('stampa')
 </script>
 </body>
 </html>`
-  fs.writeFileSync(path.join(USCITA, 'index.html'), html)
+  if (haHome) {
+    // La home è di Nummo: il cruscotto va in /conti/ e risolve gli indirizzi dalla radice.
+    fs.mkdirSync(path.join(USCITA, 'conti'), { recursive: true })
+    fs.writeFileSync(path.join(USCITA, 'conti', 'index.html'), html.replace('<head>', '<head>\n<base href="../">'))
+  } else {
+    fs.writeFileSync(path.join(USCITA, 'index.html'), html)
+  }
   // Il diario: un indice e un articolo per ogni giornata.
   const testaPagina = (titolo, descrizione, radice) => `<!doctype html>
 <html lang="it">
@@ -490,6 +522,18 @@ document.documentElement.classList.add('stampa')
 </div>
 </body>
 </html>`)
+  }
+  if (fs.existsSync(CASA_SITO)) {
+    let copiati = 0
+    for (const rel of tuttiIFile(CASA_SITO)) {
+      if (RISERVATI_SITO.has(rel.split(path.sep)[0])) { console.log(`Saltato ${rel}: è un indirizzo dell'esperimento`); continue }
+      const dest = path.join(USCITA, rel)
+      fs.mkdirSync(path.dirname(dest), { recursive: true })
+      if (rel.endsWith('.html')) fs.writeFileSync(dest, inserisciPiede(fs.readFileSync(path.join(CASA_SITO, rel), 'utf8'), '../'.repeat(rel.split(path.sep).length - 1)))
+      else fs.copyFileSync(path.join(CASA_SITO, rel), dest)
+      copiati++
+    }
+    console.log(`Sito di Nummo: ${copiati} file${haHome ? ', compresa la home (il cruscotto è in /conti/)' : ''}`)
   }
   console.log(`Sito costruito in ${path.relative(RADICE, USCITA)}/ (giorno ${c.giorno}, taglio ${t.nome}, ${tutte.length} righe)`)
 }

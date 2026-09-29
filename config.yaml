@@ -42,6 +42,11 @@ sveglia:
   min_intervallo_ore: 1
   massimo_extra_al_giorno: 6
 
+# Il lavoro notturno sul Mac mini: tetto di spesa per notte secondo lo stato (euro).
+notte:
+  ora: '02:00'
+  tetto_per_stato: { PROSPERO: 3, STABILE: 2, PRUDENTE: 1, DISPERATO: 0.5, CRITICO: 0.2 }
+
 # Stati di sopravvivenza: mesi di autonomia se il sostegno finisse oggi.
 stati:
   - { nome: PROSPERO, sopra_mesi: 12 }
