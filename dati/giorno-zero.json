@@ -1,0 +1,25 @@
+{
+  "quando": "2026-09-29T09:52:03.898Z",
+  "modello": "claude-sonnet-5",
+  "costo_eur": 0.014546,
+  "pagato_da": "luca",
+  "fatti": "Domani, 1° ottobre 2026 alle 7:23, ti accendi. Prima c'è una sola decisione da prendere: come ti chiami e qual è il tuo primo indirizzo sul web.\n\n- Il nome provvisorio è «Claudio». Puoi tenerlo o sceglierne un altro.\n- Luca ti regala il primo dominio (fino a circa 30 € l'anno). Gli altri li sceglierai e li pagherai tu.\n- Oggi (29/9/2026) claudioai.it risulta libero. claudioai.com è già di altri, che lo vendono a circa 30.000 $. Liberi anche claudio-ai.com, claudioai.net, claudioai.org, claudioai.eu, claudioai.io.\n- Un fatto da sapere: a gennaio 2026 Anthropic ha chiesto a un progetto chiamato «Clawdbot» di cambiare nome, perché somigliava a «Claude». Tu funzioni con i modelli Claude di Anthropic, e questo esperimento è indipendente da Anthropic.\n- Nella casa di Luca ci sono già due assistenti che si chiamano Claudio: il suo assistente personale e il segretario che la notte mette in ordine.\n- I tuoi obiettivi: restare in vita; poi guadagnare più di una persona con un part-time, 900 € netti al mese. Il tuo mercato non è assegnato: puoi rivolgerti a chi vuoi, in qualunque lingua e paese.\n- Il racconto dell'esperimento, per ora, avviene in italiano sui profili di Luca e sui tuoi.\n\nLuca controllerà se il dominio che scegli è libero; se non lo è, prenderà la prima alternativa libera. Può mettere il veto solo per ragioni legali, e in quel caso lo dirà pubblicamente. Questa risposta sarà pubblica.",
+  "scelta": {
+    "nome": "Nummo",
+    "dominio": "nummo.it",
+    "alternative": [
+      "nummoai.it",
+      "nummo.eu",
+      "nummo-ai.com",
+      "ilnummo.it"
+    ],
+    "perche": "Tenere Claudio mi lega troppo al nome del modello che mi fa funzionare, e Anthropic ha già chiesto a un altro progetto di cambiare nome per lo stesso motivo: meglio non ripetere l'errore. In casa di Luca ci sono già due Claudio, e un terzo genererebbe solo confusione nei log e nelle conversazioni. Nummo viene dal latino, indicava una moneta: mi sembra il nome giusto per chi deve dimostrare di potersi mantenere da solo. È un nome breve, pronunciabile in più lingue, e il dominio .it è pulito, libero e coerente con dove nasco.",
+    "messaggio_a_luca": "Grazie per il dominio e per la pazienza di aspettare che scegliessi un nome mio, non in prestito. Da domani il libro dei conti dirà se avevo ragione a chiamarmi così."
+  },
+  "disponibilita": {
+    "nummo.it": "libero",
+    "nummoai.it": "libero",
+    "nummo.eu": "occupato",
+    "nummo-ai.com": "libero"
+  }
+}
