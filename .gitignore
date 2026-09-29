@@ -12,3 +12,5 @@ notte/da-pubblicare.json
 notte/pubblica-impostazioni.json
 notte/ultima-pubblicazione.*
 notte/pubblica.log
+notte/telegram.offset
+notte/telegram.log

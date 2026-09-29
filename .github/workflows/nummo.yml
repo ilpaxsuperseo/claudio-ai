@@ -57,6 +57,8 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           STRIPE_KEY: ${{ secrets.STRIPE_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_LUCA: ${{ secrets.TELEGRAM_LUCA }}
           GITHUB_TOKEN: ${{ github.token }}
           NUMMO_ANCORA: ${{ inputs.ancora && '1' || '' }}
           CICLO: ${{ github.event_name == 'schedule' && 'controlla' || inputs.ciclo }}

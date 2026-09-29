@@ -13,6 +13,8 @@ import { leggiEntrata, leggiSpesa } from './messaggi.mjs'
 import { VOCE } from './voce.mjs'
 import * as sveglia from './sveglia.mjs'
 import * as stripe from './stripe.mjs'
+import * as telegram from './telegram.mjs'
+import { NOMI_STATO } from './banconota.mjs'
 
 const richiesto = ['mattina', 'extra'].includes(process.argv[2]) ? process.argv[2] : 'controlla'
 let tipoCiclo = 'mattina'     // mattina: il respiro del giorno (sostegno); extra: un risveglio in più (lo paga Nummo)
@@ -83,6 +85,7 @@ async function leggiLuca() {
     if (/^stop\b/i.test(msg.titolo)) {
       fs.writeFileSync(FERMO, `Fermato da Luca il ${adesso().toISOString()}: ${msg.testo}\n`)
       await github.chiudi(msg.numero, 'Ricevuto: mi fermo. Nessuna nuova azione finché il file FERMO resta nel repository.')
+      await telegram.scriviALuca('Ricevuto: mi fermo. Non faccio più niente finché il file FERMO resta nel repository.')
       return { fermo: true }
     }
     const spesa = leggiSpesa(msg.titolo)
@@ -277,7 +280,11 @@ async function main() {
     r = await pensa({ livello: 'respiro', sistema: SISTEMA, messaggio })
   } catch (e) {
     if (e.costo) registraCosto({ categoria, importo_eur: e.costo.eur, descrizione: `Respiro non riuscito (${e.modello}): ${e.message}`, rif, giaSostenuto: true })
+    // A Luca lo si dice una volta sola per mattina: i tentativi successivi restano in silenzio.
+    const giaDetto = leggiJsonl('diario.jsonl').some((x) => x.data === dataLocale() && x.ciclo === 'mattina' && x.errore)
     registraDiario({ errore: e.message, costo_eur: e.costo?.eur ?? 0 })
+    if (tipoCiclo === 'mattina' && !giaDetto)
+      await telegram.scriviALuca(`Stamattina non sono riuscito a pensare: ${e.message}\n\n${e.costo ? 'Il tentativo è costato qualcosa, quindi non riprovo da solo: per rifarlo serve rilanciare il mattino con «ancora».' : 'Non mi è costato niente: riprovo da solo ogni ora.'}`)
     throw e
   }
   registraCosto({ categoria, importo_eur: r.costo.eur, descrizione: `Respiro${tipoCiclo === 'extra' ? ` in più, ore ${sveglia.oraLocale()}` : ''} (${r.modello}, ${r.uso.input_tokens}+${r.uso.output_tokens} token)`, rif, giaSostenuto: true })
@@ -353,6 +360,8 @@ async function main() {
       richieste.push(nuova)
       scriviJson('richieste.json', richieste)
       nuova.issue = await github.apriRichiesta(nuova).catch((e) => { console.error(`Richiesta ${id} non aperta: ${e.message}`); return null })
+      // Sul telefono di Luca: risponde a questo messaggio con sì o no e la risposta finisce nella issue.
+      if (nuova.issue) nuova.telegram = await telegram.scriviALuca(`Ti chiedo una cosa (richiesta ${id}${a.importo_eur > 0 ? `, ${euro(a.importo_eur)}` : ''}):\n\n${a.dettagli}\n\nRispondi a questo messaggio con «sì» o «no», e se vuoi aggiungi il perché. (#${nuova.issue})`) ?? undefined
       scriviJson('richieste.json', richieste)
       esitiAzioni.push({ ...a, esito: nuova.issue || !github.collegato ? `richiesta ${id} inviata` : `richiesta ${id} registrata, issue non aperta` })
     } else if (a.strumento === 'lavoro_notturno') {
@@ -428,6 +437,13 @@ async function main() {
     const png = await disegnaPost({ conti: dopo, frase })
     fs.writeFileSync(path.join(cartella, 'post.jpg'), await jpegPost(png, `Nummo, giorno ${dopo.giorno}: ${euro(dopo.cassa)} in cassa. ${frase}`))
   }
+
+  if (tipoCiclo === 'mattina')
+    await telegram.scriviALuca([
+      `Giorno ${dopo.giorno}. Cassa ${euro(dopo.cassa)}, stato ${NOMI_STATO[dopo.stato].toLowerCase()}.`,
+      `Ho deciso: ${d.decisione}`,
+      racconto ? `Il diario di oggi: ${config.sito}/diario/giorno-${dopo.giorno}/` : '',
+    ].filter(Boolean).join('\n\n'))
 
   fine(`Giorno ${dopo.giorno} · ${tipoCiclo} · ${dopo.stato} · cassa ${euro(dopo.cassa)} · pensiero ${euro(costoTotale, 4)} · ${d.decisione}`)
 }
