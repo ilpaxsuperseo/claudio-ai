@@ -21,11 +21,11 @@ export async function bot(metodo, parametri = {}) {
 export const taglia = (testo) => (testo.length > 4000 ? `${testo.slice(0, 3990)}…` : testo)
 
 // Un messaggio a Luca. Restituisce il numero del messaggio (serve a riconoscere le risposte), o null.
-export async function scriviALuca(testo, { rispondiA } = {}) {
+export async function scriviALuca(testo, { rispondiA, silenzioso = false } = {}) {
   if (!collegato()) return null
   try {
     const m = await bot('sendMessage', {
-      chat_id: chatDiLuca(), text: taglia(testo), link_preview_options: { is_disabled: true },
+      chat_id: chatDiLuca(), text: taglia(testo), link_preview_options: { is_disabled: true }, disable_notification: silenzioso,
       ...(rispondiA ? { reply_parameters: { message_id: rispondiA, allow_sending_without_reply: true } } : {}),
     })
     return m.message_id

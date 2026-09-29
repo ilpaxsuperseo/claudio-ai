@@ -14,3 +14,5 @@ notte/ultima-pubblicazione.*
 notte/pubblica.log
 notte/telegram.offset
 notte/telegram.log
+notte/sportello-*.jsonl
+notte/notte.log

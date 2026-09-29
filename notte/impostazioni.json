@@ -1,27 +1,33 @@
 {
-  "$commento": "Le regole della casa di Nummo sul Mac mini. Claude Code di notte legge SOLO queste (--settings, --setting-sources user con una cartella di configurazione sua). Pubbliche, come la costituzione.",
-  "apiKeyHelper": "/Users/lucamasrepassaro/ai-workspace/prodotti/nummo/notte/chiave.sh",
+  "$commento": "Le regole della casa di Nummo sul Mac mini. Claude Code di notte gira come utente macOS «nummo» e legge SOLO queste (--settings, --setting-sources user, una cartella di configurazione sua). Le chiavi dei servizi le tiene lo sportello, sul lato di Luca. Pubbliche, come la costituzione.",
+  "apiKeyHelper": "/Users/nummo/.nummo/chiave.sh",
   "includeCoAuthoredBy": false,
   "cleanupPeriodDays": 30,
+  "env": {
+    "npm_config_cache": "/Users/Shared/nummo-casa/lavoro/.npm",
+    "PLAYWRIGHT_BROWSERS_PATH": "/Users/Shared/nummo-casa/lavoro/.browser"
+  },
   "permissions": {
     "defaultMode": "dontAsk",
     "allow": [
       "Read(//Users/Shared/nummo-casa/**)",
       "Edit(//Users/Shared/nummo-casa/**)",
       "Write(//Users/Shared/nummo-casa/**)",
+      "Read(//Users/Shared/nummo-sportello/**)",
       "Glob",
       "Grep",
       "WebSearch",
       "WebFetch",
       "Bash",
-      "mcp__higgsfield",
-      "mcp__metricool",
-      "mcp__dataforseo"
+      "mcp__sportello"
     ],
     "deny": [
       "Read(//Users/lucamasrepassaro/**)",
       "Edit(//Users/lucamasrepassaro/**)",
       "Write(//Users/lucamasrepassaro/**)",
+      "Read(//Users/nummo/.nummo/**)",
+      "Edit(//Users/nummo/.nummo/**)",
+      "Write(//Users/nummo/.nummo/**)",
       "Read(//Users/Shared/nummo-casa/.claude/**)",
       "Edit(//Users/Shared/nummo-casa/.claude/**)",
       "Write(//Users/Shared/nummo-casa/.claude/**)",
@@ -35,8 +41,8 @@
     "enabled": true,
     "failIfUnavailable": true,
     "filesystem": {
-      "denyRead": ["/Users/lucamasrepassaro"],
-      "allowRead": ["/Users/Shared/nummo-casa", "/Users/lucamasrepassaro/.local/node22"],
+      "denyRead": ["/Users/lucamasrepassaro", "/Users/nummo/.nummo"],
+      "allowRead": ["/Users/Shared/nummo-casa", "/Users/Shared/nummo-sportello", "/Users/lucamasrepassaro/.local/node22"],
       "allowWrite": ["/Users/Shared/nummo-casa/sito", "/Users/Shared/nummo-casa/note", "/Users/Shared/nummo-casa/lavoro"]
     },
     "network": {
