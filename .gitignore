@@ -6,3 +6,5 @@ simulazione/
 prova-*.png
 .DS_Store
 interno/
+notte/config/
+notte/mcp.json

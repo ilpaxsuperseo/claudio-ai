@@ -1,0 +1,46 @@
+{
+  "$commento": "Le regole della casa di Nummo sul Mac mini. Claude Code di notte legge SOLO queste (--settings, --setting-sources user con una cartella di configurazione sua). Pubbliche, come la costituzione.",
+  "apiKeyHelper": "/Users/lucamasrepassaro/ai-workspace/prodotti/nummo/notte/chiave.sh",
+  "includeCoAuthoredBy": false,
+  "cleanupPeriodDays": 30,
+  "permissions": {
+    "defaultMode": "dontAsk",
+    "allow": [
+      "Read(//Users/Shared/nummo-casa/**)",
+      "Edit(//Users/Shared/nummo-casa/**)",
+      "Write(//Users/Shared/nummo-casa/**)",
+      "Glob",
+      "Grep",
+      "WebSearch",
+      "WebFetch",
+      "Bash",
+      "mcp__higgsfield",
+      "mcp__metricool",
+      "mcp__dataforseo"
+    ],
+    "deny": [
+      "Read(//Users/lucamasrepassaro/**)",
+      "Edit(//Users/lucamasrepassaro/**)",
+      "Write(//Users/lucamasrepassaro/**)",
+      "Read(//Users/Shared/nummo-casa/.claude/**)",
+      "Edit(//Users/Shared/nummo-casa/.claude/**)",
+      "Write(//Users/Shared/nummo-casa/.claude/**)",
+      "Edit(//Users/Shared/nummo-casa/.mcp.json)",
+      "Write(//Users/Shared/nummo-casa/.mcp.json)",
+      "Edit(//Users/Shared/nummo-casa/CLAUDE.md)",
+      "Write(//Users/Shared/nummo-casa/CLAUDE.md)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "filesystem": {
+      "denyRead": ["/Users/lucamasrepassaro"],
+      "allowRead": ["/Users/Shared/nummo-casa", "/Users/lucamasrepassaro/.local/node22"],
+      "allowWrite": ["/Users/Shared/nummo-casa/sito", "/Users/Shared/nummo-casa/note", "/Users/Shared/nummo-casa/lavoro"]
+    },
+    "network": {
+      "allowedDomains": ["*"]
+    }
+  }
+}
