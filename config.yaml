@@ -80,6 +80,11 @@ metricool:
   # Le reti su cui esce il post del giorno (X e Threads quando saranno collegati al brand).
   reti: [instagram, facebook, tiktok]
 
+# Stripe (account di Luca, chiave limitata in .env/secrets). Le mance si possono creare subito; i prodotti
+# solo dopo il via del commercialista (codice ATECO, INPS, IVA): allora vendite_attive diventa true.
+stripe:
+  vendite_attive: false
+
 # I suoi profili (nome utente). Quelli vuoti non compaiono sul sito.
 social:
   instagram: nummo.ai_

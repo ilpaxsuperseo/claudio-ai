@@ -12,6 +12,7 @@ import { disegnaPost, jpegPost } from './immagine.mjs'
 import { leggiEntrata, leggiSpesa } from './messaggi.mjs'
 import { VOCE } from './voce.mjs'
 import * as sveglia from './sveglia.mjs'
+import * as stripe from './stripe.mjs'
 
 const richiesto = ['mattina', 'extra'].includes(process.argv[2]) ? process.argv[2] : 'controlla'
 let tipoCiclo = 'mattina'     // mattina: il respiro del giorno (sostegno); extra: un risveglio in più (lo paga Nummo)
@@ -43,6 +44,29 @@ function ordinaLavoro(compito, budget, giorno) {
 
 const notizie = () => leggiJson('notizie.json', [])
 const aggiungiNotizia = (testo) => scriviJson('notizie.json', [...notizie(), { quando: adesso().toISOString(), testo }])
+
+// I pagamenti sui link di Nummo: vendite fra i guadagni, mance fra il sostegno del pubblico,
+// tasse e commissione Stripe tolte subito. Ogni pagamento si registra una volta sola (rif = sessione Stripe).
+async function registraIncassi() {
+  let nuovi = 0
+  try {
+    for (const i of await stripe.incassi()) {
+      const rif = `stripe ${i.sessione}`
+      if (giaRegistrato(rif)) continue
+      const tipo = i.tipo === 'mancia' ? 'sostegno_pubblico' : 'guadagno'
+      registra({ tipo, importo_eur: i.importo_eur, descrizione: `${i.tipo === 'mancia' ? 'Mancia' : 'Vendita'}: ${i.nome} (Stripe)`, rif })
+      if (config.tasse_su_incassi > 0 && !giaRegistrato(`${rif} tasse`))
+        registra({ tipo: 'tasse', importo_eur: -arrotonda(i.importo_eur * config.tasse_su_incassi), descrizione: `Tasse e contributi (${config.tasse_su_incassi * 100}%)`, rif: `${rif} tasse` })
+      if (i.commissione_eur > 0 && !giaRegistrato(`${rif} commissione`))
+        registraCosto({ categoria: 'commissioni', importo_eur: i.commissione_eur, descrizione: 'Commissione Stripe', rif: `${rif} commissione`, giaSostenuto: true })
+      aggiungiNotizia(`Hai incassato ${euro(i.importo_eur)}: ${i.tipo === 'mancia' ? 'una mancia' : 'una vendita'} su «${i.nome}»${i.commissione_eur ? ` (commissione Stripe ${euro(i.commissione_eur)})` : ''}`)
+      nuovi++
+    }
+  } catch (e) {
+    console.error(`Incassi non letti: ${e.message}`)
+  }
+  return nuovi
+}
 
 // Alla fine di ogni esecuzione GitHub sa se c'è qualcosa da salvare e da ripubblicare.
 function fine(messaggio, cambiato = true) {
@@ -142,6 +166,12 @@ function osservazione({ c, richieste, memoria }) {
       return lavori.length ? lavori.map((l) => `- ${l.id} (giorno ${l.giorno}, budget ${euro(l.budget_eur)}): ${l.stato}${l.riassunto ? ` — ${l.riassunto}` : ''}${l.costo_eur != null ? ` (speso ${euro(l.costo_eur, 4)})` : ''}. Compito: ${l.compito.slice(0, 160)}`) : ['- nessuno ancora']
     })(),
     '',
+    'I TUOI LINK DI PAGAMENTO',
+    ...(stripe.pagamenti().filter((p) => p.attivo).length
+      ? stripe.pagamenti().filter((p) => p.attivo).map((p) => `- ${p.tipo === 'mancia' ? 'Mancia' : `Prodotto a ${euro(p.prezzo_eur)}`}: ${p.nome} → ${p.url}`)
+      : ['- nessuno ancora']),
+    `Vendite di prodotti: ${config.stripe?.vendite_attive ? 'attive' : 'non ancora attive (solo mance)'}.`,
+    '',
     'LA TUA SVEGLIA',
     `Il risveglio del mattino è fisso alle ${sveglia.impostazioni().mattina} e lo paga il sostegno. Gli altri li decidi tu con lo strumento «sveglia» e li paghi tu; se Luca ti scrive, ti svegli entro un'ora.`,
     `Prossimo risveglio in più: ${sveglia.leggi().prossima ? `${dataLocale(new Date(sveglia.leggi().prossima))} alle ${sveglia.oraLocale(new Date(sveglia.leggi().prossima))}` : 'nessuno'}. Risvegli in più fatti oggi: ${sveglia.extraDiOggi()} su ${sveglia.impostazioni().massimo_extra_al_giorno}.`,
@@ -197,6 +227,7 @@ async function main() {
 
   const luca = await leggiLuca()
   if (luca.fermo) return fine('Luca ha chiesto lo stop.')
+  const incassati = await registraIncassi()
 
   // Le risposte alle richieste diventano notizie.
   const richieste = leggiJson('richieste.json', [])
@@ -206,7 +237,7 @@ async function main() {
     aggiungiNotizia(`Luca ha risposto alla richiesta ${e.id}: ${e.esito} — «${e.risposta}»`)
   }
   scriviJson('richieste.json', richieste)
-  const novita = luca.novita || esiti.length > 0
+  const novita = luca.novita || esiti.length > 0 || incassati > 0
 
   // Un risveglio in più avviene solo se c'è la sveglia di Nummo o se Luca ha scritto. Altrimenti niente, a costo zero.
   if (tipoCiclo === 'extra') {
@@ -325,6 +356,8 @@ async function main() {
       esitiAzioni.push({ ...a, esito: nuova.issue || !github.collegato ? `richiesta ${id} inviata` : `richiesta ${id} registrata, issue non aperta` })
     } else if (a.strumento === 'lavoro_notturno') {
       esitiAzioni.push({ ...a, esito: ordinaLavoro(a.dettagli, a.importo_eur, c.giorno) })
+    } else if (a.strumento === 'crea_pagamento') {
+      esitiAzioni.push({ ...a, esito: await stripe.creaLink(a).catch((e) => `non creato: ${e.message}`) })
     } else if (a.strumento === 'statistiche_sito') {
       const accendi = /accend|attiv|s[iì]\b/i.test(a.dettagli) && !/spegn|disattiv/i.test(a.dettagli)
       scriviJson('sito.json', { ...leggiJson('sito.json', {}), tracciamento: accendi, cambiato: adesso().toISOString() })

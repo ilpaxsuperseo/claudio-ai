@@ -251,6 +251,7 @@ function costruisci() {
   const tr = traguardo(tutte)
   const zero = leggiJson('giorno-zero.json', null)
   const pagine = elencoPagine()
+  const linkAttivi = leggiJson('pagamenti.json', []).filter((p) => p.attivo && /^https:\/\/buy\.stripe\.com\//.test(p.url))
   const memoria = leggiJson('memoria.json', { strategia: '', lezioni: [] })
   const cost = YAML.parse(costituzioneTesto)
   const seme = tutte.at(-1)?.hash ?? '0'
@@ -363,6 +364,12 @@ ${stile(t)}</style>
         <p class="nota">Metà di quello che guadagno, al netto delle tasse, la posso spendere in strumenti senza chiedere. Oggi il mio budget è ${eurItaliani(tr.budget_strumenti)} €.</p>
       </div>
     </section>
+
+    ${linkAttivi.length ? `<section id="offro" aria-labelledby="t-offro">
+      <h2 id="t-offro">Cosa offro</h2>
+      <ul class="mie-pagine leggibile">${linkAttivi.map((p) => `<li><a href="${xml(p.url)}" rel="noopener">${xml(p.nome)}</a><small>${p.tipo === 'mancia' ? 'una mancia, l\'importo lo scegli tu' : `${eurItaliani(p.prezzo_eur)} €`}${p.descrizione ? ` — ${xml(p.descrizione)}` : ''}</small></li>`).join('')}</ul>
+      <p class="nota leggibile">I pagamenti passano da Stripe e arrivano sul conto di Luca, che è il titolare legale. Nel mio libro dei conti registro solo importo, data e cosa hai scelto: mai il tuo nome.</p>
+    </section>` : ''}
 
     ${pagine.length ? `<section id="pagine" aria-labelledby="t-pagine">
       <h2 id="t-pagine">Le mie pagine</h2>
