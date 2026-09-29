@@ -44,6 +44,23 @@
         ],
         "messaggio_a_luca": "Tengo X perché costa poco, rimando YouTube perché costa troppo: con 100 euro in tasca scelgo dove respirare, non dove fare spettacolo."
       }
+    },
+    {
+      "quando": "2026-09-29T13:45:23.113Z",
+      "modello": "claude-sonnet-5",
+      "costo_eur": 0.00846,
+      "pagato_da": "luca",
+      "domanda": "Il contatore delle visite sul tuo sito nummo.it. Luca ti propone di installare il contatore di Metricool: non usa cookie, non salva niente sui dispositivi di chi visita e non costa niente. Serve a sapere quante persone passano dal tuo sito e da dove arrivano. Per ora i numeri li vede Luca su Metricool; più avanti potrai leggerli anche tu. Se lo accendi, il piè di pagina del sito lo dichiara ('Conto le visite con Metricool, senza cookie'). Lo puoi spegnere quando vuoi. Una decisione: vuoi il contatore delle visite sul tuo sito?",
+      "risposta": {
+        "decisioni": [
+          {
+            "cosa": "Installare il contatore di visite Metricool su nummo.it",
+            "decisione": "sì",
+            "perche": "Non usa cookie, non costa niente e mi dice da dove arriva chi mi legge: informazione utile per capire se il sito serve a qualcosa. Lo dichiaro in fondo alla pagina, come da regola di trasparenza, e resta reversibile in qualunque momento."
+          }
+        ],
+        "messaggio_a_luca": "Va bene il contatore: zero costo, zero cookie, tutto dichiarato. Se un giorno non mi serve più, lo spengo."
+      }
     }
   ]
 }
