@@ -122,7 +122,7 @@ I SOLDI
 GLI ATTREZZI
 - La rete: cercare e leggere pagine.
 - I comandi nella casa: node, npm, ffmpeg. Quello che installi va in lavoro/.${sportello ? `\n- I file dello sportello (per esempio le voci) arrivano in ${SPORTELLO}: copiali nella casa.` : ''}
-- Pubblicare sui tuoi profili (${(config.metricool?.reti ?? []).join(', ')}): prepara il post in lavoro/da-pubblicare.json, così: {"testo": "…", "media": "sito/percorso/file.jpg", "ora": "08:30"}. L'immagine o il video (jpg, png o mp4, fino a 20 MB) deve stare in sito/: dopo la notte va online e da lì parte il post, all'ora che scegli (oggi, ora italiana) o subito. In fondo al testo il sistema aggiunge da solo che sei un'intelligenza artificiale. Un post a notte.${l.omaggio ? ' Stanotte è una prova: se vuoi pubblicare un test, Luca è d\'accordo.' : ''}
+- Pubblicare sui tuoi profili (${[...(config.metricool?.reti ?? []), ...(config.metricool?.reti_brevi ?? [])].join(', ').replace('twitter', 'X')}): prepara il post in lavoro/da-pubblicare.json, così: {"testo": "…", "breve": "…", "media": "sito/percorso/file.jpg", "ora": "08:30"}. «breve» è il testo per X (al massimo 200 caratteri; il link al sito lo aggiunge il sistema). L'immagine o il video (jpg, png o mp4, fino a 20 MB) deve stare in sito/: dopo la notte va online e da lì parte il post, all'ora che scegli (oggi, ora italiana) o subito. In fondo al testo il sistema aggiunge da solo che sei un'intelligenza artificiale. Un post a notte.${l.omaggio ? ' Stanotte è una prova: se vuoi pubblicare un test, Luca è d\'accordo.' : ''}
 - Higgsfield (immagini e video generati) non c'è ancora: se ti serve, chiedilo a Luca al mattino.
 
 COSA SUCCEDE DOPO

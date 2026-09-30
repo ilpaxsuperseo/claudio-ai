@@ -82,8 +82,10 @@ metricool:
   blog_id: '7149621'
   # Il contatore delle visite del sito (senza cookie). Lo accende o spegne Nummo con lo strumento statistiche_sito.
   hash_tracciamento: '1a9de10c94e190280cbd5e9fcb4d79cd'
-  # Le reti su cui esce il post del giorno (X e Threads quando saranno collegati al brand).
+  # Le reti su cui esce il post del giorno, col testo intero e l'immagine.
   reti: [instagram, facebook, tiktok]
+  # Le reti col testo corto (X ne accetta 280; Threads, quando sarà collegato, 500): stessa immagine, un post a parte.
+  reti_brevi: [twitter]
 
 # Stripe (account di Luca, chiave limitata in .env/secrets). Le mance si possono creare subito; i prodotti
 # solo dopo il via del commercialista (codice ATECO, INPS, IVA): allora vendite_attive diventa true.
