@@ -80,7 +80,7 @@ function preparaCasa(file) {
   if (!testo || testo.length > 2000) return no('il testo va da 1 a 2000 caratteri')
   const media = path.posix.normalize(String(r.media ?? '')).replace(/^\.\//, '')
   if (!/^sito\/[^]+\.(jpe?g|png|mp4|mov)$/i.test(media) || media.split('/').includes('..')) return no('«media» dev\'essere un\'immagine o un video dentro sito/')
-  if (!fs.existsSync(path.join(RADICE, 'casa', media))) return no(`${media} non è fra i file messi online`)
+  if (!fs.existsSync(path.resolve(RADICE, process.env.NUMMO_CASA || 'casa', media))) return no(`${media} non è fra i file messi online`)
   const scelte = Array.isArray(r.reti) && r.reti.length ? r.reti : [...RETI, ...BREVI]
   const reti = RETI.filter((x) => scelte.includes(x))
   const brevi = BREVI.filter((x) => scelte.includes(x))
