@@ -8,6 +8,7 @@ import http from 'node:http'
 import path from 'node:path'
 import { config } from './base.mjs'
 import * as posta from './posta.mjs'
+import * as higgsfield from './higgsfield.mjs'
 
 const TETTO = Number(process.env.SPORTELLO_TETTO_EUR) || 0
 const CAMBIO = Number(process.env.SPORTELLO_CAMBIO) || config.cambio_usd_eur_riserva
@@ -55,7 +56,48 @@ const conPosta = (f) => async (a) => {
   }
 }
 
+// Higgsfield: i crediti sono di Luca, con un tetto al mese; il costo in euro lo paga Nummo.
+function creditiDelMese() {
+  const mese = new Date().toISOString().slice(0, 7)
+  const cartella = path.dirname(REGISTRO)
+  return fs.readdirSync(cartella).filter((f) => f.startsWith('sportello-') && f.endsWith('.jsonl'))
+    .flatMap((f) => fs.readFileSync(path.join(cartella, f), 'utf8').trim().split('\n').filter(Boolean).map((r) => JSON.parse(r)))
+    .filter((x) => x.servizio === 'higgsfield' && x.quando?.startsWith(mese)).reduce((t, x) => t + (x.crediti ?? 0), 0)
+}
+function generatore(tipo) {
+  return async (a) => {
+    const prompt = String(a.prompt ?? '').trim()
+    if (!prompt) throw new Rifiuto('Serve un prompt: la descrizione di cosa generare.')
+    const modello = a.modello || higgsfield.MODELLI[tipo][0]
+    if (!higgsfield.MODELLI[tipo].includes(modello)) throw new Rifiuto(`Modelli possibili: ${higgsfield.MODELLI[tipo].join(', ')}.`)
+    const nome = String(a.nome_file ?? '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 60)
+    if (!nome) throw new Rifiuto('Serve un nome_file fatto di lettere, numeri e trattini.')
+    const H = S.higgsfield
+    const tettoCrediti = Math.floor(Math.min(H.crediti_al_mese - creditiDelMese(), (TETTO - speso()) / H.euro_per_credito) * 100) / 100
+    if (tettoCrediti <= 0) throw new Rifiuto('Tetto raggiunto: fra i soldi di questo lavoro e i crediti del mese, non resta spazio per una generazione.')
+    const r = await higgsfield.genera({ tipo, prompt, modello, formato: a.formato, secondi: a.secondi, tettoCrediti })
+    if (r.lavoro && r.prezzo != null) annota({ servizio: 'higgsfield', cosa: `${tipo} ${modello}, ${r.prezzo} crediti`, crediti: r.prezzo, costo_eur: r.prezzo * H.euro_per_credito })
+    if (!r.url) throw new Rifiuto(r.errore ? `Higgsfield: ${r.errore}.` : r.lavoro ? 'La generazione è partita ma non è finita in tempo: i crediti sono spesi.' : 'La generazione non è partita.')
+    const est = (r.url.match(/\.(png|jpe?g|webp|mp4|mov)(\?|$)/i)?.[1] ?? (tipo === 'video' ? 'mp4' : 'png')).toLowerCase()
+    const file = path.join(CARTELLA, `${nome}.${est}`)
+    fs.writeFileSync(file, Buffer.from(await (await fetch(r.url)).arrayBuffer()))
+    return `Fatto: ${file} (${r.prezzo} crediti, ${(r.prezzo * H.euro_per_credito).toFixed(3)} €).`
+  }
+}
+
 const STRUMENTI = {
+  immagine_ai: {
+    serve: () => Boolean(S.higgsfield),
+    description: `Genera un'immagine con Higgsfield. Si chiede sempre prima il prezzo: se sta nel tetto, si genera (per esempio ${higgsfield.MODELLI.immagine[0]} costa circa 0,25 crediti; un credito ti costa circa ${S.higgsfield?.euro_per_credito} €). Il file arriva nella cartella dello sportello. Può metterci qualche minuto.`,
+    inputSchema: { type: 'object', properties: { prompt: { type: 'string' }, modello: { type: 'string', enum: higgsfield.MODELLI.immagine }, formato: { type: 'string', enum: higgsfield.FORMATI }, nome_file: { type: 'string', description: 'Solo lettere, numeri e trattini.' } }, required: ['prompt', 'nome_file'] },
+    fai: generatore('immagine'),
+  },
+  video_ai: {
+    serve: () => Boolean(S.higgsfield),
+    description: `Genera un video di 5 o 10 secondi con Higgsfield, da un testo. Si chiede sempre prima il prezzo: se sta nel tetto, si genera (per esempio 5 secondi con kling3_0 costano circa 10 crediti, con seedance_2_5 circa 35; un credito ti costa circa ${S.higgsfield?.euro_per_credito} €). Il file arriva nella cartella dello sportello. Può metterci diversi minuti.`,
+    inputSchema: { type: 'object', properties: { prompt: { type: 'string' }, modello: { type: 'string', enum: higgsfield.MODELLI.video }, formato: { type: 'string', enum: higgsfield.FORMATI }, secondi: { type: 'number', enum: [5, 10] }, nome_file: { type: 'string', description: 'Solo lettere, numeri e trattini.' } }, required: ['prompt', 'nome_file'] },
+    fai: generatore('video'),
+  },
   posta_arrivata: {
     serve: posta.collegata,
     description: 'Gli ultimi 20 messaggi arrivati a ciao@nummo.it, con uid, data, mittente (nome e dominio), oggetto e se l\'hai già letto o risposto. I messaggi delle piattaforme e quelli con codici o accessi restano nascosti. Non costa niente.',

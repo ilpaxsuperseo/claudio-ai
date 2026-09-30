@@ -5,7 +5,8 @@
   "cleanupPeriodDays": 30,
   "env": {
     "npm_config_cache": "/Users/Shared/nummo-casa/lavoro/.npm",
-    "PLAYWRIGHT_BROWSERS_PATH": "/Users/Shared/nummo-casa/lavoro/.browser"
+    "PLAYWRIGHT_BROWSERS_PATH": "/Users/Shared/nummo-casa/lavoro/.browser",
+    "MCP_TOOL_TIMEOUT": "1200000"
   },
   "permissions": {
     "defaultMode": "dontAsk",
