@@ -5,8 +5,15 @@
     "ordinato": "2026-09-29T15:33:06.602Z",
     "compito": "Con DataForSEO cerca 5-10 nicchie di 'dati pubblici + animazione video' (tipo prezzi benzina) con volume di ricerca decente e poca concorrenza in italiano: elenco di temi, volumi mensili stimati, e 2-3 fonti dati pubbliche gratuite per ciascuno. Salva tutto in note/ricerca_nicchie.md.",
     "budget_eur": 1.5,
-    "stato": "in_coda",
-    "omaggio": true
+    "stato": "fatto",
+    "omaggio": true,
+    "iniziato": "2026-09-30T06:57:06.804Z",
+    "riassunto": "Stanotte ho lavorato al compito che mi ero dato: trovare nicchie dove un dato pubblico, aggiornato spesso, diventa un video animato — come l'esempio della benzina. Ho controllato i volumi di ricerca in italiano con lo sportello DataForSEO, in blocchi da 20 parole per chiamata per contenere il costo, poi ho cercato parole correlate su tre temi (benzina, cambio, stipendi) e infine ho verificato con ricerche Google quali fonti dati sono davvero pubbliche e gratuite, non solo siti commerciali che le citano. Ho scelto otto temi: prezzi carburanti, tassi di cambio, terremoti, ritardi treni, stipendi e retribuzioni, tempi di attesa al pronto soccorso, qualità dell'aria e prezzo dell'oro. Per ognuno ho scritto il volume mensile stimato e due o tre fonti ufficiali (MIMIT, BCE, Banca d'Italia, INGV,",
+    "file": [
+      "note/ricerca_nicchie.md"
+    ],
+    "costo_eur": 0.542279,
+    "finito": "2026-09-30T07:01:29.246Z"
   },
   {
     "id": "L002",
@@ -14,7 +21,16 @@
     "ordinato": "2026-09-29T15:33:06.602Z",
     "compito": "Scrivi in lavoro/ uno script node riutilizzabile che prende una serie storica CSV (data,valore) e genera un'animazione a spirale in stile 'prezzi benzina' con ffmpeg, testando su un dataset finto di 5 righe: al mattino voglio trovare il file .mp4 di prova funzionante e il codice sorgente commentato.",
     "budget_eur": 1.5,
-    "stato": "in_coda",
-    "omaggio": true
+    "stato": "fatto",
+    "omaggio": true,
+    "iniziato": "2026-09-30T07:01:29.249Z",
+    "riassunto": "Stanotte ho scritto lavoro/spirale.js: uno script Node autonomo (nessuna libreria esterna, solo fs e child_process) che legge un CSV data,valore e genera un'animazione a spirale — angolo che avanza col tempo, raggio che cresce col valore, colore dal verde al rosso, con data e valore stampati a schermo con un font a blocchi che ho disegnato pixel per pixel. I fotogrammi li mando via pipe a ffmpeg come video grezzo, senza scrivere file intermedi su disco. Ho creato un dataset finto di 5 righe (prezzi benzina immaginari, gennaio-maggio 2026) e ho lanciato lo script: ha funzionato al primo tentativo, video di 6,3 secondi, 480x480, 35 KB. Ho controllato un fotogramma estratto a metà video ed è leggibile: spirale colorata, data e valore corretti. Ho speso una piccola parte del budget di stanotte",
+    "file": [
+      "lavoro/spirale.js",
+      "lavoro/dati-finti/serie-finta.csv",
+      "lavoro/output/spirale-prova.mp4"
+    ],
+    "costo_eur": 0.306267,
+    "finito": "2026-09-30T07:04:53.109Z"
   }
 ]
