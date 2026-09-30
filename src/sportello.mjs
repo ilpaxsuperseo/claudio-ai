@@ -7,6 +7,7 @@ import fs from 'node:fs'
 import http from 'node:http'
 import path from 'node:path'
 import { config } from './base.mjs'
+import * as posta from './posta.mjs'
 
 const TETTO = Number(process.env.SPORTELLO_TETTO_EUR) || 0
 const CAMBIO = Number(process.env.SPORTELLO_CAMBIO) || config.cambio_usd_eur_riserva
@@ -44,7 +45,40 @@ async function dfs(percorso, compito, tipo) {
 const dove = (a) => ({ location_name: a.paese || 'Italy', language_code: a.lingua || 'it' })
 const parole = (a) => (Array.isArray(a.parole) ? a.parole : []).map(String).map((p) => p.trim()).filter(Boolean).slice(0, 20)
 
+const registro = () => (fs.existsSync(REGISTRO) ? fs.readFileSync(REGISTRO, 'utf8').trim().split('\n').filter(Boolean).map((r) => JSON.parse(r)) : [])
+// Gli errori della posta che Nummo deve vedere (regole, non guasti) arrivano come rifiuti.
+const conPosta = (f) => async (a) => {
+  try {
+    return await f(a)
+  } catch (e) {
+    throw e instanceof posta.RifiutoPosta ? new Rifiuto(e.message) : e
+  }
+}
+
 const STRUMENTI = {
+  posta_arrivata: {
+    serve: posta.collegata,
+    description: 'Gli ultimi 20 messaggi arrivati a ciao@nummo.it, con uid, data, mittente (nome e dominio), oggetto e se l\'hai già letto o risposto. I messaggi delle piattaforme e quelli con codici o accessi restano nascosti. Non costa niente.',
+    inputSchema: { type: 'object', properties: {} },
+    fai: conPosta(() => posta.elenco(20)),
+  },
+  leggi_email: {
+    serve: posta.collegata,
+    description: 'Il testo di un messaggio arrivato a ciao@nummo.it (dal suo uid). Gli allegati non si aprono. Non costa niente.',
+    inputSchema: { type: 'object', properties: { uid: { type: 'number' } }, required: ['uid'] },
+    fai: conPosta((a) => posta.leggi(Number(a.uid))),
+  },
+  rispondi_email: {
+    serve: posta.collegata,
+    description: `Rispondere a un messaggio arrivato a ciao@nummo.it (dal suo uid). La risposta va solo a chi ti ha scritto, una volta per messaggio, con la tua firma da intelligenza artificiale aggiunta in fondo. Scrivere a indirizzi nuovi non si può. Al massimo ${posta.massimoRisposte()} risposte per lavoro. Non costa niente.`,
+    inputSchema: { type: 'object', properties: { uid: { type: 'number' }, testo: { type: 'string', description: 'Il testo della risposta, senza firma: la aggiunge il sistema.' } }, required: ['uid', 'testo'] },
+    fai: conPosta(async (a) => {
+      if (registro().filter((x) => x.servizio === 'email').length >= posta.massimoRisposte()) throw new Rifiuto(`Hai già mandato ${posta.massimoRisposte()} risposte in questo lavoro: le altre al prossimo.`)
+      const { dominio } = await posta.rispondi(Number(a.uid), a.testo)
+      annota({ servizio: 'email', cosa: `risposta a un messaggio da @${dominio}`, costo_eur: 0 })
+      return `Risposta mandata (a un indirizzo @${dominio}).`
+    }),
+  },
   voci_disponibili: {
     serve: () => Boolean(process.env.NUMMO_ELEVENLABS_KEY),
     description: 'Le voci ElevenLabs che puoi usare (nome, descrizione, id). Non costa niente.',

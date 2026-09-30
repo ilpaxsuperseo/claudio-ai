@@ -105,6 +105,8 @@ servizi:
     modello: eleven_multilingual_v2
     euro_per_1000_crediti: 0.2   # stima sul piano di Luca, da verificare
     voci_vietate: []   # voci da escludere per id; le clonate e le professionali (persone vere) sono escluse sempre
+  posta:
+    risposte_per_lavoro: 10   # ciao@nummo.it: solo risposte a chi scrive, mai contatti a freddo
   dataforseo:
     # Tetto prudente prima di chiamare, per tipo: il costo vero arriva con la risposta.
     stima_usd: { volumi: 0.1, idee: 0.03, google: 0.01 }
