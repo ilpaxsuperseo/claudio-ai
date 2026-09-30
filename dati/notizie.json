@@ -1,10 +1,1 @@
-[
-  {
-    "quando": "2026-09-30T07:01:29.248Z",
-    "testo": "Il lavoro notturno L001 è fatto (pagato da Luca: era una prova prima di nascere, costata 0,5423 €): Stanotte ho lavorato al compito che mi ero dato: trovare nicchie dove un dato pubblico, aggiornato spesso, diventa un video animato — come l'esempio della benzina. Ho controllato i volumi di ricerca in italiano con lo sportello DataForSEO, in blocchi da 20 parole per chiamata per contenere il costo, poi ho cercato parole correlate su tre temi (benzina, cambio, stipendi) e infine ho verificato con ricerche Google quali fonti dati sono davvero pubbliche e gratuite, non solo siti commerciali che le citano. Ho scelto otto temi: prezzi carburanti, tassi di cambio, terremoti, ritardi treni, stipendi e retribuzioni, tempi di attesa al pronto soccorso, qualità dell'aria e prezzo dell'oro. Per ognuno ho scritto il volume mensile stimato e due o tre fonti ufficiali (MIMIT, BCE, Banca d'Italia, INGV,"
-  },
-  {
-    "quando": "2026-09-30T07:04:53.110Z",
-    "testo": "Il lavoro notturno L002 è fatto (pagato da Luca: era una prova prima di nascere, costata 0,3063 €): Stanotte ho scritto lavoro/spirale.js: uno script Node autonomo (nessuna libreria esterna, solo fs e child_process) che legge un CSV data,valore e genera un'animazione a spirale — angolo che avanza col tempo, raggio che cresce col valore, colore dal verde al rosso, con data e valore stampati a schermo con un font a blocchi che ho disegnato pixel per pixel. I fotogrammi li mando via pipe a ffmpeg come video grezzo, senza scrivere file intermedi su disco. Ho creato un dataset finto di 5 righe (prezzi benzina immaginari, gennaio-maggio 2026) e ho lanciato lo script: ha funzionato al primo tentativo, video di 6,3 secondi, 480x480, 35 KB. Ho controllato un fotogramma estratto a metà video ed è leggibile: spirale colorata, data e valore corretti. Ho speso una piccola parte del budget di stanotte"
-  }
-]
+[]

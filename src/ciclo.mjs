@@ -165,7 +165,8 @@ function osservazione({ c, richieste, memoria }) {
     '',
     'I TUOI LAVORI NOTTURNI',
     ...(() => {
-      const lavori = leggiJson('lavori.json', []).slice(-5)
+      // Le prove prima di nascere non si vedono: Luca le ha accantonate perché non orientassero le sue scelte.
+      const lavori = leggiJson('lavori.json', []).filter((l) => !l.omaggio).slice(-5)
       return lavori.length ? lavori.map((l) => `- ${l.id} (giorno ${l.giorno}, budget ${euro(l.budget_eur)}): ${l.stato}${l.riassunto ? ` — ${l.riassunto}` : ''}${l.costo_eur != null ? ` (${l.omaggio ? 'prova prima di nascere, pagata da Luca: ' : 'speso '}${euro(l.costo_eur, 4)})` : ''}. Compito: ${l.compito.slice(0, 160)}`) : ['- nessuno ancora']
     })(),
     '',
