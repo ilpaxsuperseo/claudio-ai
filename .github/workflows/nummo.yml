@@ -92,14 +92,14 @@ jobs:
 
       # Il sito si pubblica solo con conti salvati: mai mostrare numeri che il repository non ha.
       - name: Sito
-        if: steps.ciclo.outputs.cambiato == 'true' || github.event_name == 'workflow_dispatch'
+        if: steps.ciclo.outputs.cambiato == 'true' || (github.event_name == 'workflow_dispatch' && inputs.ciclo != 'controlla')
         run: node src/sito.mjs
       - uses: actions/upload-pages-artifact@v3
-        if: steps.ciclo.outputs.cambiato == 'true' || github.event_name == 'workflow_dispatch'
+        if: steps.ciclo.outputs.cambiato == 'true' || (github.event_name == 'workflow_dispatch' && inputs.ciclo != 'controlla')
         with:
           path: sito
       - id: pubblica
-        if: steps.ciclo.outputs.cambiato == 'true' || github.event_name == 'workflow_dispatch'
+        if: steps.ciclo.outputs.cambiato == 'true' || (github.event_name == 'workflow_dispatch' && inputs.ciclo != 'controlla')
         uses: actions/deploy-pages@v4
 
       - name: Esito del ciclo
