@@ -97,7 +97,7 @@ social:
   instagram: nummo.ai_
   x: nummoai
   threads: ''
-  tiktok: ''
+  tiktok: nummo.ai
 
 # I servizi dello sportello (src/sportello.mjs): le chiavi sono di Luca, i costi li paga Nummo.
 servizi:
