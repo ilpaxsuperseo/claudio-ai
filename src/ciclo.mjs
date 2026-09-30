@@ -14,6 +14,7 @@ import { VOCE } from './voce.mjs'
 import * as sveglia from './sveglia.mjs'
 import * as stripe from './stripe.mjs'
 import * as telegram from './telegram.mjs'
+import { riassunto as riassuntoNumeri } from './numeri.mjs'
 import { NOMI_STATO } from './banconota.mjs'
 
 const richiesto = ['mattina', 'extra'].includes(process.argv[2]) ? process.argv[2] : 'controlla'
@@ -169,6 +170,9 @@ function osservazione({ c, richieste, memoria }) {
       const lavori = leggiJson('lavori.json', []).filter((l) => !l.omaggio).slice(-5)
       return lavori.length ? lavori.map((l) => `- ${l.id} (giorno ${l.giorno}, budget ${euro(l.budget_eur)}): ${l.stato}${l.riassunto ? ` — ${l.riassunto}` : ''}${l.costo_eur != null ? ` (${l.omaggio ? 'prova prima di nascere, pagata da Luca: ' : 'speso '}${euro(l.costo_eur, 4)})` : ''}. Compito: ${l.compito.slice(0, 160)}`) : ['- nessuno ancora']
     })(),
+    '',
+    'I TUOI NUMERI (da Metricool, ogni notte)',
+    ...riassuntoNumeri(leggiJson('numeri.json', null)),
     '',
     'I TUOI LINK DI PAGAMENTO',
     ...(stripe.pagamenti().filter((p) => p.attivo).length
