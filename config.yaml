@@ -102,7 +102,7 @@ servizi:
   elevenlabs:
     modello: eleven_multilingual_v2
     euro_per_1000_crediti: 0.2   # stima sul piano di Luca, da verificare
-    voci_vietate: [zLrRcxEjbv6MSxETIxhj]   # la voce clonata di Luca (le clonate sono escluse comunque)
+    voci_vietate: []   # voci da escludere per id; le clonate e le professionali (persone vere) sono escluse sempre
   dataforseo:
     # Tetto prudente prima di chiamare, per tipo: il costo vero arriva con la risposta.
     stima_usd: { volumi: 0.1, idee: 0.03, google: 0.01 }
