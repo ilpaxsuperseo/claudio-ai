@@ -43,7 +43,7 @@
     "filesystem": {
       "denyRead": ["/Users/lucamasrepassaro", "/Users/nummo/.nummo"],
       "allowRead": ["/Users/Shared/nummo-casa", "/Users/Shared/nummo-sportello", "/Users/lucamasrepassaro/.local/node22"],
-      "allowWrite": ["/Users/Shared/nummo-casa/sito", "/Users/Shared/nummo-casa/note", "/Users/Shared/nummo-casa/lavoro"]
+      "allowWrite": ["/Users/Shared/nummo-casa/sito", "/Users/Shared/nummo-casa/note", "/Users/Shared/nummo-casa/lavoro", "/Users/Shared/nummo-casa/mente"]
     },
     "network": {
       "allowedDomains": ["*"]

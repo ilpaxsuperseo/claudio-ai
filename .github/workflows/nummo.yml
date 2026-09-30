@@ -31,7 +31,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Gli occhi di Nummo: il codice che si scrive da solo (casa/mente/occhi.mjs) gira qui, in un lavoro a
+  # parte, senza nessuna chiave e con permessi di sola lettura. Quello che vede passa al ciclo come testo.
+  occhi:
+    if: github.event_name == 'schedule' || inputs.ciclo != 'solo-sito'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Occhi
+        run: node src/occhi.mjs > occhi.txt || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: occhi
+          path: occhi.txt
+          retention-days: 1
+
   vive:
+    needs: occhi
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
@@ -49,6 +75,12 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npm test
+      - uses: actions/download-artifact@v4
+        if: needs.occhi.result == 'success'
+        continue-on-error: true
+        with:
+          name: occhi
+          path: occhi
 
       - name: Ciclo
         id: ciclo
@@ -62,6 +94,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           NUMMO_ANCORA: ${{ inputs.ancora && '1' || '' }}
           CICLO: ${{ github.event_name == 'schedule' && 'controlla' || inputs.ciclo }}
+          NUMMO_OCCHI: occhi/occhi.txt
         run: node src/ciclo.mjs "$CICLO"
 
       - name: Salva i conti nel repository

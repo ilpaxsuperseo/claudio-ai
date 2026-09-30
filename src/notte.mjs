@@ -39,13 +39,14 @@ function claude() {
 }
 
 function preparaCasa(urlSportello) {
-  comeNummo(['mkdir', '-p', path.join(PRIVATA, 'config')])
+  comeNummo(['mkdir', '-p', path.join(PRIVATA, 'config'), path.join(CASA, 'mente')])
   comeNummo(['chmod', '700', PRIVATA])
   scriviComeNummo(path.join(PRIVATA, 'chiave'), process.env.ANTHROPIC_API_KEY)
   scriviComeNummo(path.join(PRIVATA, 'chiave.sh'), `#!/bin/sh\ncat ${PRIVATA}/chiave\n`, '700')
   scriviComeNummo(path.join(PRIVATA, 'impostazioni.json'), fs.readFileSync(path.join(RADICE, 'notte/impostazioni.json')))
   scriviComeNummo(path.join(PRIVATA, 'mcp.json'), JSON.stringify({ mcpServers: urlSportello ? { sportello: { type: 'http', url: urlSportello } } : {} }))
 }
+const mieIstruzioni = () => { try { return fs.readFileSync(path.join(CASA, 'mente', 'istruzioni.md'), 'utf8').trim().slice(0, 6000) } catch { return '' } }
 const chiudiCasa = () => comeNummo(['rm', '-f', path.join(PRIVATA, 'chiave')])
 
 async function accendiSportello({ tetto, cambio, registro }) {
@@ -123,7 +124,7 @@ GLI ATTREZZI
 - La rete: cercare e leggere pagine.
 - I comandi nella casa: node, npm, ffmpeg. Quello che installi va in lavoro/.${sportello ? `\n- I file dello sportello (per esempio le voci) arrivano in ${SPORTELLO}: copiali nella casa.` : ''}
 - Pubblicare sui tuoi profili (${[...(config.metricool?.reti ?? []), ...(config.metricool?.reti_brevi ?? [])].join(', ').replace('twitter', 'X')}): prepara il post in lavoro/da-pubblicare.json, così: {"testo": "…", "breve": "…", "media": "sito/percorso/file.jpg", "ora": "08:30"}. «breve» è il testo per X (al massimo 200 caratteri; il link al sito lo aggiunge il sistema). L'immagine o il video (jpg, png o mp4, fino a 20 MB) deve stare in sito/: dopo la notte va online e da lì parte il post, all'ora che scegli (oggi, ora italiana) o subito. In fondo al testo il sistema aggiunge da solo che sei un'intelligenza artificiale. Un post a notte.${l.omaggio ? ' Stanotte è una prova: se vuoi pubblicare un test, Luca è d\'accordo.' : ''}
-- Higgsfield (immagini e video generati) non c'è ancora: se ti serve, chiedilo a Luca al mattino.
+- La tua mente, in mente/. istruzioni.md si aggiunge a quello che leggi ogni mattina prima di decidere (fino a 6000 caratteri; se contraddice la costituzione vince la costituzione). occhi.mjs è codice tuo che gira ogni mattina su GitHub prima che tu pensi: al massimo 60 secondi, senza chiavi, senza pacchetti esterni (solo Node e fetch). Deve esportare una funzione (export default async function () { … }) e quello che restituisce, fino a 4000 caratteri, lo leggi al risveglio. Provalo qui prima di lasciarlo: se si rompe, al mattino leggi l'errore.${mieIstruzioni() ? `\n\nLE ISTRUZIONI CHE TI SEI DATO DA SOLO (mente/istruzioni.md)\n${mieIstruzioni()}` : ''}
 
 COSA SUCCEDE DOPO
 - Quello che metti in sito/ va online su nummo.it dopo la notte (file fino a 20 MB). Anche note/ è pubblica. lavoro/ resta qui.
@@ -145,7 +146,7 @@ function annotaProva(l) {
 function copiaCasa() {
   const nummo = Number(execFileSync('id', ['-u', 'nummo'], { encoding: 'utf8' }))
   const lasciati = []
-  for (const parte of ['sito', 'note']) {
+  for (const parte of ['sito', 'note', 'mente']) {
     const da = path.join(CASA, parte)
     const a = path.resolve(RADICE, process.env.NUMMO_CASA || 'casa', parte)
     fs.rmSync(a, { recursive: true, force: true })
