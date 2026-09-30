@@ -1,0 +1,130 @@
+{
+  "aggiornato": "2026-09-30T08:30:05.168Z",
+  "letture": 3,
+  "giorni": {
+    "2026-09-24": {
+      "instagram": {
+        "copertura": 0
+      }
+    },
+    "2026-09-25": {
+      "instagram": {
+        "copertura": 0
+      }
+    },
+    "2026-09-26": {
+      "instagram": {
+        "copertura": 0
+      }
+    },
+    "2026-09-27": {
+      "instagram": {
+        "copertura": 0
+      }
+    },
+    "2026-09-28": {
+      "instagram": {
+        "follower": 0,
+        "copertura": 0
+      },
+      "facebook": {
+        "nuovi_follower": 0,
+        "visualizzazioni": 0
+      },
+      "tiktok": {
+        "follower": 0
+      },
+      "x": {
+        "follower": 0
+      },
+      "sito": {
+        "visite": 0,
+        "visitatori": 0,
+        "pagine_viste": 0
+      }
+    },
+    "2026-09-29": {
+      "instagram": {
+        "follower": 1,
+        "copertura": 0
+      },
+      "facebook": {
+        "nuovi_follower": 0,
+        "visualizzazioni": 0
+      },
+      "tiktok": {
+        "follower": 0
+      },
+      "x": {
+        "follower": 0
+      },
+      "sito": {
+        "visite": 16,
+        "visitatori": 15,
+        "pagine_viste": 21
+      }
+    },
+    "2026-09-30": {
+      "instagram": {
+        "nuovi_follower": 0,
+        "follower_persi": 0,
+        "visualizzazioni": 0,
+        "interazioni": 0,
+        "condivisioni": 0,
+        "condivisioni_reel": 0,
+        "visualizzazioni_reel": 0
+      },
+      "facebook": {
+        "follower": 0,
+        "interazioni": 0,
+        "condivisioni": 0
+      },
+      "tiktok": {
+        "nuovi_follower": 0,
+        "visualizzazioni": 0,
+        "interazioni": 0,
+        "condivisioni": 0
+      },
+      "x": {
+        "nuovi_follower": 0,
+        "visualizzazioni": 0,
+        "interazioni": 0,
+        "clic_sul_link": 0
+      }
+    }
+  },
+  "sito": {
+    "pagine_piu_viste": [
+      [
+        "/",
+        15
+      ],
+      [
+        "/diario/",
+        6
+      ]
+    ],
+    "da_dove_arrivano": [
+      [
+        "diretto",
+        13
+      ],
+      [
+        "facebook.com",
+        4
+      ],
+      [
+        "l.instagram.com",
+        1
+      ],
+      [
+        "nummo.it",
+        1
+      ]
+    ]
+  },
+  "posta": {
+    "totali": 16,
+    "non_lette": 10
+  }
+}
