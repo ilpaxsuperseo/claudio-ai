@@ -6,7 +6,7 @@
 // blocca qualsiasi chiamata diversa da quella preparata qui (altro brand, altro testo, altra data).
 import fs from 'node:fs'
 import path from 'node:path'
-import { RADICE, config, leggiJsonl, leggiJson, scriviJson, adesso, dataLocale, giornoDiVita } from './base.mjs'
+import { RADICE, config, leggiJsonl, leggiJson, scriviJson, adesso, dataLocale, giornoDiVita, leggiFileDiNummo } from './base.mjs'
 
 export const PAYLOAD = path.join(RADICE, 'notte', 'da-pubblicare.json')
 const oggi = dataLocale()
@@ -72,9 +72,10 @@ function preparaCasa(file) {
   const no = (motivo) => console.log(`niente: ${motivo}`)
   let r
   try {
-    r = JSON.parse(fs.readFileSync(file, 'utf8'))
+    r = JSON.parse(leggiFileDiNummo(file, 100_000))
   } catch (e) {
-    return no(`richiesta illeggibile (${e.message})`)
+    // Mai il messaggio d'errore di JSON.parse: riporta l'inizio del file letto.
+    return no(e instanceof SyntaxError ? 'la richiesta non è JSON valido' : e.message)
   }
   const testo = String(r.testo ?? '').trim()
   if (!testo || testo.length > 2000) return no('il testo va da 1 a 2000 caratteri')
@@ -103,16 +104,26 @@ function offset(d) {
   return nome === 'GMT' ? '+00:00' : nome.replace('GMT', '')
 }
 
-function fatto(ids = '') {
+// Com'è andata, secondo le risposte vere di Metricool annotate dal guardiano:
+//   uscita 0 → tutto programmato; 3 → solo in parte (non si ritenta: niente doppioni); 1 → niente, si ritenta dopo.
+// Una risposta senza numero e senza errore è «incerta»: si considera partita (meglio un avviso che un doppione).
+function fatto() {
   const p = JSON.parse(fs.readFileSync(PAYLOAD, 'utf8'))
-  const mandati = p.posts.filter((x) => x.inviato)
-  scriviJson('pubblicati.json', [...leggiJson('pubblicati.json', []), { data: p.data, giorno: p.giorno, quando: adesso().toISOString(), programmato_per: p.posts[0]?.info.publicationDate, reti: mandati.flatMap((x) => x.reti), immagine: p.immagine, metricool: ids.split(/\s+/).filter(Boolean) }])
+  const errore = (x) => !x.inviato || x.risposta == null || (!x.confermato && /error|errore|invalid|failed|denied/i.test(x.risposta))
+  const partiti = p.posts.filter((x) => !errore(x))
+  const mancati = p.posts.filter(errore)
+  if (!partiti.length) {
+    console.log(`niente programmato: ${mancati.map((x) => `${x.reti.join('+')}: ${x.risposta ?? 'nessuna risposta'}`).join(' | ').slice(0, 400)}`)
+    process.exit(1)
+  }
+  scriviJson('pubblicati.json', [...leggiJson('pubblicati.json', []), { data: p.data, giorno: p.giorno, quando: adesso().toISOString(), programmato_per: p.posts[0]?.info.publicationDate, reti: partiti.flatMap((x) => x.reti), mancate: mancati.flatMap((x) => x.reti), immagine: p.immagine, metricool: partiti.map((x) => x.confermato ?? 'incerto') }])
   fs.rmSync(PAYLOAD)
-  console.log(`segnato: ${mandati.length} di ${p.posts.length} post del giorno ${p.giorno} programmati (${mandati.flatMap((x) => x.reti).join(', ')})`)
+  console.log(`segnato: ${partiti.length} di ${p.posts.length} post del giorno ${p.giorno} programmati (${partiti.flatMap((x) => x.reti).join(', ')})${mancati.length ? `; non partiti: ${mancati.flatMap((x) => x.reti).join(', ')}` : ''}`)
+  if (mancati.length) process.exit(3)
 }
 
 const [comando, argomento] = process.argv.slice(2)
 if (comando === 'prepara') prepara()
 else if (comando === 'prepara-casa') preparaCasa(argomento)
-else if (comando === 'fatto') fatto(process.argv.slice(3).join(' '))
+else if (comando === 'fatto') fatto()
 else console.log('uso: node src/pubblica.mjs prepara | fatto <id>')

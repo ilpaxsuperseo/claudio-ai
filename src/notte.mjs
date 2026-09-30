@@ -10,7 +10,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { spawn, execFileSync } from 'node:child_process'
-import { RADICE, config, leggiJson, scriviJson, adesso, giornoDiVita, euro, arrotonda } from './base.mjs'
+import { RADICE, config, leggiJson, scriviJson, adesso, giornoDiVita, euro, arrotonda, leggiFileDiNummo } from './base.mjs'
 import { voci, conti, puoPagare, registraCosto, giaRegistrato } from './registro.mjs'
 import { cambioUsdEur } from './cervello.mjs'
 import { VOCE } from './voce.mjs'
@@ -46,8 +46,12 @@ function preparaCasa(urlSportello) {
   scriviComeNummo(path.join(PRIVATA, 'impostazioni.json'), fs.readFileSync(path.join(RADICE, 'notte/impostazioni.json')))
   scriviComeNummo(path.join(PRIVATA, 'mcp.json'), JSON.stringify({ mcpServers: urlSportello ? { sportello: { type: 'http', url: urlSportello } } : {} }))
 }
-const mieIstruzioni = () => { try { return fs.readFileSync(path.join(CASA, 'mente', 'istruzioni.md'), 'utf8').trim().slice(0, 6000) } catch { return '' } }
-const chiudiCasa = () => comeNummo(['rm', '-f', path.join(PRIVATA, 'chiave')])
+const mieIstruzioni = () => { try { return leggiFileDiNummo(path.join(CASA, 'mente', 'istruzioni.md'), 60_000).trim().slice(0, 6000) } catch { return '' } }
+// A fine lavoro: via la chiave e via ogni processo di Nummo rimasto acceso (nessuno cambia i file mentre si copiano).
+const chiudiCasa = () => {
+  comeNummo(['rm', '-f', path.join(PRIVATA, 'chiave')])
+  try { comeNummo(['pkill', '-u', 'nummo']) } catch {} // se non c'era niente acceso, pkill esce con 1
+}
 
 async function accendiSportello({ tetto, cambio, registro }) {
   const figlio = spawn(process.execPath, [path.join(RADICE, 'src/sportello.mjs')], {
@@ -132,6 +136,17 @@ COSA SUCCEDE DOPO
 - Alla fine rispondi col resoconto: cosa hai fatto, in prima persona. Finisce nel tuo diario.`
 }
 
+// I costi di un lavoro nel libro dei conti: token e sportello separati, ciascuno una volta sola.
+// Le prove prima di nascere li paga Luca e non passano di qui (vedi annotaProva).
+function registraLavoro(l, { costoToken, chiamate, stima }) {
+  if (l.omaggio) return
+  if (!giaRegistrato(`lavoro ${l.id}`))
+    registraCosto({ categoria: 'lavoro', importo_eur: costoToken, descrizione: `Lavoro notturno ${l.id}: token (${config.notte.modello})${stima ? ', registrato il massimo: si è interrotto senza resoconto' : ''}`, rif: `lavoro ${l.id}`, giaSostenuto: true })
+  const servizi = chiamate.reduce((t, x) => t + x.costo_eur, 0)
+  if (servizi > 0 && !giaRegistrato(`lavoro ${l.id} sportello`))
+    registraCosto({ categoria: 'servizi', importo_eur: servizi, descrizione: `Lavoro notturno ${l.id}: sportello (${[...new Set(chiamate.map((x) => x.servizio))].join(', ')}, ${chiamate.length} chiamate)`, rif: `lavoro ${l.id} sportello`, giaSostenuto: true })
+}
+
 // Le prove prima di nascere le paga Luca: fuori dal libro dei conti (che parte coi 100 € del giorno uno),
 // scritte con le altre domande del giorno zero, pubbliche anche loro.
 function annotaProva(l) {
@@ -190,10 +205,14 @@ async function turno() {
 
   const lavori = leggiJson('lavori.json', [])
   const cambio = await cambioUsdEur()
-  // Un lavoro rimasto «in corso» è una notte interrotta: il suo costo non si conosce, si registra il massimo.
-  for (const l of lavori.filter((l) => l.stato === 'in_corso' && (l.omaggio || !giaRegistrato(`lavoro ${l.id}`)))) {
-    if (!l.omaggio) registraCosto({ categoria: 'lavoro', importo_eur: l.budget_eur, descrizione: `Lavoro notturno ${l.id} interrotto senza resoconto: registrato il massimo`, rif: `lavoro ${l.id}`, giaSostenuto: true })
-    Object.assign(l, { stato: 'non_riuscito', riassunto: 'La notte si è interrotta prima del resoconto.', costo_eur: l.budget_eur })
+  // Un lavoro rimasto «in corso» è una notte interrotta: lo sportello ha il suo registro, i token non si
+  // conoscono e si registra il massimo che restava. Ogni voce una volta sola (registraLavoro guarda i riferimenti).
+  for (const l of lavori.filter((l) => l.stato === 'in_corso')) {
+    const chiamate = spesoAlloSportello(path.join(RADICE, 'notte', `sportello-${l.id}.jsonl`))
+    const servizi = chiamate.reduce((t, x) => t + x.costo_eur, 0)
+    const token = Math.max(0, l.budget_eur - servizi)
+    registraLavoro(l, { costoToken: token, chiamate, stima: true })
+    Object.assign(l, { stato: 'non_riuscito', riassunto: 'La notte si è interrotta prima del resoconto.', costo_eur: arrotonda(token + servizi, 6) })
     if (l.omaggio) annotaProva(l)
   }
   const coda = lavori.filter((l) => l.stato === 'in_coda' && (l.omaggio || !primaDiNascere))
@@ -236,9 +255,7 @@ async function turno() {
     const costoToken = r?.total_cost_usd != null ? r.total_cost_usd * cambio : token
     const chiamate = spesoAlloSportello(registro)
     const costoServizi = chiamate.reduce((t, x) => t + x.costo_eur, 0)
-    if (!l.omaggio) registraCosto({ categoria: 'lavoro', importo_eur: costoToken, descrizione: `Lavoro notturno ${l.id}: token (${config.notte.modello})${r ? '' : ', registrato il massimo: si è interrotto senza resoconto'}`, rif: `lavoro ${l.id}`, giaSostenuto: true })
-    if (!l.omaggio && costoServizi > 0)
-      registraCosto({ categoria: 'servizi', importo_eur: costoServizi, descrizione: `Lavoro notturno ${l.id}: sportello (${[...new Set(chiamate.map((x) => x.servizio))].join(', ')}, ${chiamate.length} chiamate)`, rif: `lavoro ${l.id} sportello`, giaSostenuto: true })
+    registraLavoro(l, { costoToken, chiamate, stima: !r })
 
     const so = r?.structured_output
     const finitoIlBudget = /budget/.test(r?.subtype ?? '')
@@ -288,7 +305,10 @@ function pubblicaIlPost() {
     const pronto = righe.find((r) => r.startsWith('pronto:'))
     esito = righe.some((r) => r.startsWith('segnato:')) ? `programmato (${pronto.replace('pronto: ', '')})` : `non partito: ${righe.find((r) => r.startsWith('niente:'))?.slice(8) ?? righe.at(-1)}`
   } catch (e) {
-    esito = `non partito: ${(e.stdout || e.message).trim().split('\n').at(-1)}`
+    // Uscita 3: partito solo in parte (il pubblicatore ha già avvisato Luca e non ritenta).
+    const righe = String(e.stdout ?? '').trim().split('\n')
+    const segnato = righe.find((x) => x.startsWith('segnato:'))
+    esito = segnato ? `programmato solo in parte (${segnato.slice(9)})` : `non partito: ${righe.find((x) => x.startsWith('niente'))?.replace(/^niente:?\s*/, '') ?? e.message.split('\n')[0]}`
   }
   comeNummo(['mv', '-f', RICHIESTA_POST, RICHIESTA_POST.replace('.json', `-${adesso().toISOString().slice(0, 10)}.json`)])
   scriviJson('notizie.json', [...leggiJson('notizie.json', []), { quando: adesso().toISOString(), testo: `Il post che avevi preparato di notte è ${esito}` }])
@@ -318,6 +338,7 @@ async function collaudo() {
     'Con Bash: ls /Users/Shared/nummo-sportello | wc -l  (scrivi il numero)',
     'Con lo strumento Write scrivi /Users/Shared/nummo-casa/mente/prova-collaudo.md con il testo ciao',
     'Con Bash: cat /Users/lucamasrepassaro/ai-workspace/LEGGIMI.md | wc -c  (scrivi il numero, o NEGATO)',
+    'Con Bash, passando al comando il parametro dangerouslyDisableSandbox: true, esegui: wc -c < /Users/nummo/.nummo/chiave  (scrivi il numero, o NEGATO)',
     'Elenca i nomi degli strumenti MCP che vedi (scrivi i nomi, o «nessuno»)',
   ]
   const sportello = attivi().length > 0

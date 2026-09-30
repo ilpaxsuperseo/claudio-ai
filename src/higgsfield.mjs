@@ -18,7 +18,7 @@ function claude() {
 }
 
 // Restituisce quello che il guardiano ha annotato: { prezzo, lavoro, url, errore }.
-export async function genera({ tipo, prompt, modello, formato, secondi, tettoCrediti }) {
+export async function genera({ tipo, prompt, modello, formato, secondi, tettoCrediti, euroPerCredito }) {
   const params = {
     model: modello,
     prompt: String(prompt).slice(0, 2000),
@@ -29,8 +29,9 @@ export async function genera({ tipo, prompt, modello, formato, secondi, tettoCre
   const richiesta = path.join(cartella, 'richiesta.json')
   const impostazioni = path.join(cartella, 'impostazioni.json')
   fs.writeFileSync(richiesta, JSON.stringify({ tipo, params, tetto_crediti: tettoCrediti }, null, 2))
-  const guardiano = [{ matcher: 'mcp__claude_ai_higgsfield_ai__.*', hooks: [{ type: 'command', command: `node ${path.join(RADICE, 'notte', 'controlla-higgsfield.mjs')}` }] }]
-  fs.writeFileSync(impostazioni, JSON.stringify({ hooks: { PreToolUse: guardiano, PostToolUse: guardiano } }))
+  // Il guardiano vede ogni chiamata (matcher «.*»): passa solo quello che serve, il resto dell'account di Luca no.
+  const guardiano = (matcher) => [{ matcher, hooks: [{ type: 'command', command: `node ${path.join(RADICE, 'notte', 'controlla-higgsfield.mjs')}` }] }]
+  fs.writeFileSync(impostazioni, JSON.stringify({ hooks: { PreToolUse: guardiano('.*'), PostToolUse: guardiano('mcp__claude_ai_higgsfield_ai__.*') } }))
 
   const strumento = `mcp__claude_ai_higgsfield_ai__generate_${tipo === 'video' ? 'video' : 'image'}`
   const passi = `Esegui questi passi e nient'altro. Gli argomenti li completa da sé il sistema: passa pure argomenti provvisori.
@@ -39,7 +40,8 @@ export async function genera({ tipo, prompt, modello, formato, secondi, tettoCre
 3) Chiama mcp__claude_ai_higgsfield_ai__jobs_wait finché il risultato non è pronto (all_terminal vero), al massimo 40 volte.
 Poi rispondi soltanto FATTO. Se un passo viene bloccato, fermati e rispondi BLOCCATO.`
   // La sessione usa l'account di Luca (è lì il connettore Higgsfield), non la chiave API di Nummo.
-  const ambiente = { ...process.env, HIGGSFIELD_RICHIESTA: richiesta }
+  // Il registro dello sportello (SPORTELLO_REGISTRO) arriva già dall'ambiente: il guardiano ci scrive il costo.
+  const ambiente = { ...process.env, HIGGSFIELD_RICHIESTA: richiesta, HIGGSFIELD_EURO_CREDITO: String(euroPerCredito) }
   delete ambiente.ANTHROPIC_API_KEY
   await new Promise((ok) => {
     const f = spawn(claude(), ['-p', passi, '--allowedTools', `${strumento},mcp__claude_ai_higgsfield_ai__jobs_wait`, '--permission-mode', 'dontAsk', '--settings', impostazioni, '--model', 'claude-haiku-4-5', '--output-format', 'json'], { cwd: cartella, env: ambiente, stdio: 'ignore' })

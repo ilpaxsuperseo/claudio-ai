@@ -85,7 +85,8 @@ export const rispondi = (uid, testo) =>
     if (!corpo || corpo.length > 5000) throw new Rifiuto('La risposta va da 1 a 5000 caratteri.')
     const { m, p } = await prendi(c, uid)
     if (m.risposta) throw new Rifiuto('A questo messaggio hai già risposto.')
-    const a = p.replyTo?.value?.[0]?.address || m.indirizzo
+    // Solo al mittente: un «Reply-To» diverso farebbe scrivere a chi non ha mai scritto.
+    const a = m.indirizzo
     if (!a || nascosto({ indirizzo: a, oggetto: '' })) throw new Rifiuto('Questo indirizzo non accetta risposte.')
     const nodemailer = await import('nodemailer')
     const posta = nodemailer.createTransport({ host: process.env.NUMMO_SMTP, port: 465, secure: true, auth: { user: process.env.NUMMO_EMAIL, pass: process.env.NUMMO_EMAIL_PASSWORD } })

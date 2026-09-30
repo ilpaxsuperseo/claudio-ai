@@ -12,10 +12,23 @@ const PAYLOAD = path.join(path.dirname(fileURLToPath(import.meta.url)), 'da-pubb
 
 let evento
 try { evento = JSON.parse(fs.readFileSync(0, 'utf8')) } catch { blocca('evento illeggibile') }
+if (evento.tool_name === 'ToolSearch') process.exit(0) // caricare la descrizione degli strumenti non fa niente
 if (evento.tool_name !== 'mcp__claude_ai_Metricool__createScheduledPost') blocca(`strumento non ammesso: ${evento.tool_name}`)
 if (!fs.existsSync(PAYLOAD)) blocca('non c\'è nessun post preparato')
 const atteso = JSON.parse(fs.readFileSync(PAYLOAD, 'utf8'))
 if (!/^\d+$/.test(atteso.blogId)) blocca('brand preparato non valido')
+// Dopo la chiamata (PostToolUse): si conserva la risposta di Metricool; il numero del post dice che è partito.
+if (evento.hook_event_name === 'PostToolUse') {
+  const mandato = atteso.posts?.find((p) => p.inviato && p.risposta == null)
+  if (mandato) {
+    const t = typeof evento.tool_response === 'string' ? evento.tool_response : JSON.stringify(evento.tool_response)
+    mandato.risposta = t.slice(0, 600)
+    mandato.confermato = t.match(/\\?"id\\?"\s*:\s*\\?"?(\d{5,})/)?.[1] ?? null
+    fs.writeFileSync(PAYLOAD, JSON.stringify(atteso, null, 2))
+  }
+  process.exit(0)
+}
+
 const post = atteso.posts?.find((p) => !p.inviato)
 if (!post) blocca('i post preparati sono già stati mandati tutti')
 post.inviato = new Date().toISOString()

@@ -24,7 +24,10 @@ for i in {1..20}; do
 done
 
 cat > notte/pubblica-impostazioni.json <<EOF
-{ "hooks": { "PreToolUse": [ { "matcher": "mcp__claude_ai_Metricool__.*", "hooks": [ { "type": "command", "command": "node $N/notte/controlla-pubblicazione.mjs" } ] } ] } }
+{ "hooks": {
+  "PreToolUse": [ { "matcher": ".*", "hooks": [ { "type": "command", "command": "node $N/notte/controlla-pubblicazione.mjs" } ] } ],
+  "PostToolUse": [ { "matcher": "mcp__claude_ai_Metricool__createScheduledPost", "hooks": [ { "type": "command", "command": "node $N/notte/controlla-pubblicazione.mjs" } ] } ]
+} }
 EOF
 
 quanti=$(node -e "console.log(JSON.parse(require('fs').readFileSync('notte/da-pubblicare.json','utf8')).posts.length)")
@@ -34,8 +37,13 @@ cd /tmp && env -u ANTHROPIC_API_KEY "$C" -p "Chiama lo strumento createScheduled
   --settings "$N/notte/pubblica-impostazioni.json" --model claude-haiku-4-5 --output-format json < /dev/null > "$N/notte/ultima-pubblicazione.json" 2> "$N/notte/ultima-pubblicazione.err"
 cd "$N"
 
-risposta=$(node -e "try{const r=JSON.parse(require('fs').readFileSync('notte/ultima-pubblicazione.json','utf8'));console.log(r.subtype==='success'&&!/ERRORE/i.test(r.result)?'OK '+r.result.trim().split(/\s+/).filter(x=>/^\d+$/.test(x)).join(' '):'ERRORE '+(r.result||r.subtype))}catch(e){console.log('ERRORE risposta illeggibile')}")
-echo "$risposta"
-[[ "$risposta" == OK* ]] || { set -a; . ./.env; set +a; node strumenti/avvisa.mjs "Il post di Nummo non è partito su Metricool: ${risposta:0:300}. Se il collegamento Metricool chiede di rifare l'accesso, va rifatto su claude.ai."; exit 1; }
-node src/pubblica.mjs fatto ${risposta#OK }
-git add dati && git commit -q -m "Post ${1:+della notte }programmato su Metricool" && git pull -q --rebase origin main && git push -q origin main
+# Com'è andata lo dicono le risposte vere di Metricool, annotate dal guardiano (non il testo della sessione).
+esito=$(node src/pubblica.mjs fatto); codice=$?
+echo "$esito"
+avvisa() { set -a; . ./.env; set +a; node strumenti/avvisa.mjs "$1"; }
+if [ $codice = 1 ]; then
+  avvisa "Il post di Nummo non è partito su Metricool: ${esito:0:300}. Riprovo al prossimo giro; se il collegamento Metricool chiede di rifare l'accesso, va rifatto su claude.ai."
+  exit 1
+fi
+[ $codice = 3 ] && avvisa "Il post di Nummo è partito solo in parte: ${esito:0:300}"
+git add dati && git commit -q -m "Post ${1:+della notte }programmato su Metricool" && git pull -q --rebase --autostash origin main && git push -q origin main

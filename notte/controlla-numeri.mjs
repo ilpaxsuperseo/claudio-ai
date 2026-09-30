@@ -13,6 +13,7 @@ const blocca = (motivo) => { process.stderr.write(`Bloccato dal guardiano dei nu
 
 let evento
 try { evento = JSON.parse(fs.readFileSync(0, 'utf8')) } catch { blocca('evento illeggibile') }
+if (evento.tool_name === 'ToolSearch') process.exit(0) // caricare la descrizione degli strumenti non fa niente
 if (evento.tool_name !== 'mcp__claude_ai_Metricool__getAnalyticsDataByMetrics') blocca(`strumento non ammesso: ${evento.tool_name}`)
 if (!fs.existsSync(RICHIESTE)) blocca('nessuna lettura preparata')
 const richieste = JSON.parse(fs.readFileSync(RICHIESTE, 'utf8'))

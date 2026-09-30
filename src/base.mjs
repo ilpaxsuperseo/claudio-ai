@@ -2,6 +2,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execFileSync } from 'node:child_process'
 import YAML from 'yaml'
 
 export const RADICE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -52,3 +53,20 @@ export const arrotonda = (n, cifre = 4) => Math.round(n * 10 ** cifre) / 10 ** c
 
 export const euro = (n, cifre = 2) =>
   new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: cifre, maximumFractionDigits: cifre }).format(n)
+
+// Un file lasciato da Nummo nella sua casa, letto dal lato di Luca (che ha permessi più ampi dei suoi).
+// Si apre senza seguire collegamenti e si accetta solo un file vero, suo, con un solo nome: altrimenti
+// Nummo potrebbe far leggere a Luca, per lui, un file di Luca.
+export function leggiFileDiNummo(file, massimo = 1_000_000) {
+  const cartella = path.dirname(path.resolve(file))
+  if (fs.realpathSync(cartella) !== cartella) throw new Error(`${file}: percorso con collegamenti`)
+  const suo = Number(execFileSync('id', ['-u', 'nummo'], { encoding: 'utf8' }))
+  const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW)
+  try {
+    const s = fs.fstatSync(fd)
+    if (!s.isFile() || s.nlink !== 1 || s.uid !== suo || s.size > massimo) throw new Error(`${file}: non è un file di Nummo`)
+    return fs.readFileSync(fd, 'utf8')
+  } finally {
+    fs.closeSync(fd)
+  }
+}

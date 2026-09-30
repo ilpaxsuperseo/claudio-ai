@@ -75,9 +75,9 @@ function generatore(tipo) {
     const H = S.higgsfield
     const tettoCrediti = Math.floor(Math.min(H.crediti_al_mese - creditiDelMese(), (TETTO - speso()) / H.euro_per_credito) * 100) / 100
     if (tettoCrediti <= 0) throw new Rifiuto('Tetto raggiunto: fra i soldi di questo lavoro e i crediti del mese, non resta spazio per una generazione.')
-    const r = await higgsfield.genera({ tipo, prompt, modello, formato: a.formato, secondi: a.secondi, tettoCrediti })
-    if (r.lavoro && r.prezzo != null) annota({ servizio: 'higgsfield', cosa: `${tipo} ${modello}, ${r.prezzo} crediti`, crediti: r.prezzo, costo_eur: r.prezzo * H.euro_per_credito })
-    if (!r.url) throw new Rifiuto(r.errore ? `Higgsfield: ${r.errore}.` : r.lavoro ? 'La generazione è partita ma non è finita in tempo: i crediti sono spesi.' : 'La generazione non è partita.')
+    // Il costo lo scrive il guardiano nel registro nel momento in cui autorizza la generazione.
+    const r = await higgsfield.genera({ tipo, prompt, modello, formato: a.formato, secondi: a.secondi, tettoCrediti, euroPerCredito: H.euro_per_credito })
+    if (!r.url) throw new Rifiuto(r.errore ? `Higgsfield: ${r.errore}.` : r.avviata ? 'La generazione è partita ma non è finita in tempo: i crediti sono spesi.' : 'La generazione non è partita.')
     const est = (r.url.match(/\.(png|jpe?g|webp|mp4|mov)(\?|$)/i)?.[1] ?? (tipo === 'video' ? 'mp4' : 'png')).toLowerCase()
     const file = path.join(CARTELLA, `${nome}.${est}`)
     fs.writeFileSync(file, Buffer.from(await (await fetch(r.url)).arrayBuffer()))
@@ -143,11 +143,12 @@ const STRUMENTI = {
       if (vietata(v)) throw new Rifiuto('Questa voce è di una persona vera: non puoi usarla.')
       pagabile((testo.length / 1000) * S.elevenlabs.euro_per_1000_crediti)
       const r = await el(`/v1/text-to-speech/${encodeURIComponent(v.voice_id)}?output_format=mp3_44100_128`, { method: 'POST', body: JSON.stringify({ text: testo, model_id: S.elevenlabs.modello }) })
+      // Il servizio è consumato: si registra subito, anche se poi il salvataggio del file fallisse.
       const crediti = Number(r.headers.get('character-cost')) || testo.length
-      const file = path.join(CARTELLA, `${nome}.mp3`)
-      fs.writeFileSync(file, Buffer.from(await r.arrayBuffer()))
       const costo = (crediti / 1000) * S.elevenlabs.euro_per_1000_crediti
       annota({ servizio: 'elevenlabs', cosa: `voce ${v.name}, ${crediti} crediti`, costo_eur: costo })
+      const file = path.join(CARTELLA, `${nome}.mp3`)
+      fs.writeFileSync(file, Buffer.from(await r.arrayBuffer()))
       return `Fatto: ${file} (${crediti} crediti, ${costo.toFixed(3)} €).`
     },
   },
@@ -182,6 +183,14 @@ const STRUMENTI = {
 }
 export const attivi = () => Object.entries(STRUMENTI).filter(([, s]) => s.serve()).map(([nome]) => nome)
 
+// Una chiamata alla volta: tetti e quote si controllano e si scalano in fila, anche con richieste in parallelo.
+let fila = Promise.resolve()
+const inFila = (f) => {
+  const p = fila.then(f, f)
+  fila = p.catch(() => {})
+  return p
+}
+
 // Il minimo di MCP che serve a Claude Code: initialize, tools/list, tools/call. Risposte in JSON, niente flussi.
 async function rispondi(msg) {
   const { id, method, params } = msg
@@ -215,7 +224,7 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
     if (msg.id === undefined) return res.writeHead(202).end() // una notifica: niente da rispondere
     let risposta
     try {
-      risposta = { jsonrpc: '2.0', id: msg.id, result: await rispondi(msg) }
+      risposta = { jsonrpc: '2.0', id: msg.id, result: await (msg.method === 'tools/call' ? inFila(() => rispondi(msg)) : rispondi(msg)) }
     } catch (e) {
       risposta = { jsonrpc: '2.0', id: msg.id, error: { code: e.codice ?? -32603, message: e.message } }
     }

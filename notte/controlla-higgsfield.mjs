@@ -4,6 +4,8 @@
 //   2. generarla una volta, solo se il prezzo sta nel tetto, con esattamente i parametri preparati;
 //   3. aspettare quel lavoro e nessun altro.
 // Tutto il resto dell'account di Luca è bloccato (uscita 2). Le risposte si annotano nel file della richiesta.
+// La generazione vera si prenota in modo atomico (una sola, anche con chiamate in parallelo) e il suo costo
+// va subito nel registro dello sportello: se la sessione si interrompe dopo, la spesa resta nei conti.
 import fs from 'node:fs'
 
 const FILE = process.env.HIGGSFIELD_RICHIESTA
@@ -51,11 +53,20 @@ if (evento.hook_event_name === 'PostToolUse') {
   process.exit(0)
 }
 
+if (evento.tool_name === 'ToolSearch') process.exit(0) // caricare la descrizione degli strumenti non fa niente
 if (evento.tool_name === GENERA) {
   const params = { ...r.params, count: 1, use_unlim: false }
   if (r.prezzo == null) permetti({ params: { ...params, get_cost: true } }, 'prima il prezzo')
-  if (r.lavoro) blocca('la generazione è già partita: una sola per richiesta')
   if (r.prezzo > r.tetto_crediti) { r.errore = `costa ${r.prezzo} crediti, il tetto è ${r.tetto_crediti}`; salva(); blocca(r.errore) }
+  try {
+    fs.writeFileSync(`${FILE}.avviata`, new Date().toISOString(), { flag: 'wx' })
+  } catch {
+    blocca('la generazione è già partita: una sola per richiesta')
+  }
+  r.avviata = true
+  salva()
+  const euro = r.prezzo * Number(process.env.HIGGSFIELD_EURO_CREDITO)
+  if (process.env.SPORTELLO_REGISTRO) fs.appendFileSync(process.env.SPORTELLO_REGISTRO, JSON.stringify({ quando: new Date().toISOString(), servizio: 'higgsfield', cosa: `${r.tipo} ${r.params.model}, ${r.prezzo} crediti`, crediti: r.prezzo, costo_eur: euro }) + '\n')
   permetti({ params }, `generazione da ${r.prezzo} crediti`)
 }
 if (evento.tool_name === ASPETTA) {

@@ -76,8 +76,14 @@ async function postaNonLetta() {
   }
 }
 
+// Se Metricool non ha risposto a tutte le letture, i numeri di ieri restano: meglio vecchi che vuoti.
 async function raccogli() {
   const risposte = fs.existsSync(GREZZI) ? fs.readFileSync(GREZZI, 'utf8').trim().split('\n').filter(Boolean).map((r) => JSON.parse(r)) : []
+  const attese = JSON.parse(fs.readFileSync(RICHIESTE, 'utf8')).length
+  if (risposte.length < attese) {
+    console.log(`incompleti: ${risposte.length} letture su ${attese}, restano i numeri di prima`)
+    process.exit(2)
+  }
   const di = (etichetta) => righe(risposte.find((r) => r.etichetta === etichetta)?.risposta)
   // Evoluzione: una riga per giorno, con le metriche nell'ordine chiesto e la data (AAAAMMGG) in fondo.
   const giorni = {}

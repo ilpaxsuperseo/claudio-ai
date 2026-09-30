@@ -14,7 +14,7 @@ quante=$(node src/numeri.mjs prepara) || exit 1
 
 cat > notte/numeri-impostazioni.json <<JSON
 { "hooks": {
-  "PreToolUse": [ { "matcher": "mcp__claude_ai_Metricool__.*", "hooks": [ { "type": "command", "command": "node $N/notte/controlla-numeri.mjs" } ] } ],
+  "PreToolUse": [ { "matcher": ".*", "hooks": [ { "type": "command", "command": "node $N/notte/controlla-numeri.mjs" } ] } ],
   "PostToolUse": [ { "matcher": "mcp__claude_ai_Metricool__getAnalyticsDataByMetrics", "hooks": [ { "type": "command", "command": "node $N/notte/controlla-numeri.mjs" } ] } ]
 } }
 JSON
@@ -25,9 +25,8 @@ cd /tmp && env -u ANTHROPIC_API_KEY "$C" -p "Chiama lo strumento getAnalyticsDat
   --settings "$N/notte/numeri-impostazioni.json" --model claude-haiku-4-5 --output-format json < /dev/null > "$N/notte/numeri-sessione.json" 2>&1
 cd "$N"
 
-node src/numeri.mjs raccogli || exit 1
-letture=$(node -e "console.log(require('./dati/numeri.json').letture)")
-[ "$letture" = "$quante" ] || node strumenti/avvisa.mjs "I numeri di Nummo stanotte non sono arrivati tutti da Metricool ($letture letture su $quante). Se il collegamento Metricool chiede di rifare l'accesso, va rifatto su claude.ai."
+esito=$(node src/numeri.mjs raccogli) || { node strumenti/avvisa.mjs "I numeri di Nummo stanotte non sono arrivati da Metricool (${esito}). Se il collegamento Metricool chiede di rifare l'accesso, va rifatto su claude.ai."; exit 1; }
+echo "$esito"
 git add dati/numeri.json
 git diff --cached --quiet || git commit -q -m "I numeri della notte"
 git pull -q --rebase --autostash origin main && git push -q origin main

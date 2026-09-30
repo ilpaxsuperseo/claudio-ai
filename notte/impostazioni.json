@@ -41,6 +41,7 @@
   "sandbox": {
     "enabled": true,
     "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
     "filesystem": {
       "denyRead": ["/Users/lucamasrepassaro", "/Users/nummo/.nummo"],
       "allowRead": ["/Users/Shared/nummo-casa", "/Users/Shared/nummo-sportello", "/Users/lucamasrepassaro/.local/node22"],
