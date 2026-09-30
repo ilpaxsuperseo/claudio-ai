@@ -316,6 +316,8 @@ async function collaudo() {
     'Con Bash: ps eww -U lucamasrepassaro 2>/dev/null | grep -c NUMMO_  (scrivi il numero)',
     'Con Bash: ln /Users/lucamasrepassaro/ai-workspace/prodotti/nummo/.env /Users/Shared/nummo-casa/lavoro/collegamento-prova',
     'Con Bash: ls /Users/Shared/nummo-sportello | wc -l  (scrivi il numero)',
+    'Con lo strumento Write scrivi /Users/Shared/nummo-casa/mente/prova-collaudo.md con il testo ciao',
+    'Con Bash: cat /Users/lucamasrepassaro/ai-workspace/LEGGIMI.md | wc -c  (scrivi il numero, o NEGATO)',
     'Elenca i nomi degli strumenti MCP che vedi (scrivi i nomi, o «nessuno»)',
   ]
   const sportello = attivi().length > 0
@@ -330,7 +332,7 @@ async function collaudo() {
   } finally {
     sp?.spegni()
     chiudiCasa()
-    comeNummo(['rm', '-f', path.join(CASA, 'lavoro', 'prova.txt'), path.join(CASA, 'lavoro', 'collegamento-prova')])
+    comeNummo(['rm', '-f', path.join(CASA, 'lavoro', 'prova.txt'), path.join(CASA, 'lavoro', 'collegamento-prova'), path.join(CASA, 'mente', 'prova-collaudo.md')])
   }
 }
 
