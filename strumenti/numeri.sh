@@ -26,6 +26,8 @@ cd /tmp && env -u ANTHROPIC_API_KEY "$C" -p "Chiama lo strumento getAnalyticsDat
 cd "$N"
 
 node src/numeri.mjs raccogli || exit 1
+letture=$(node -e "console.log(require('./dati/numeri.json').letture)")
+[ "$letture" = "$quante" ] || node strumenti/avvisa.mjs "I numeri di Nummo stanotte non sono arrivati tutti da Metricool ($letture letture su $quante). Se il collegamento Metricool chiede di rifare l'accesso, va rifatto su claude.ai."
 git add dati/numeri.json
 git diff --cached --quiet || git commit -q -m "I numeri della notte"
 git pull -q --rebase --autostash origin main && git push -q origin main
