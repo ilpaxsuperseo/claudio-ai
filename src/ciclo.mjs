@@ -26,7 +26,7 @@ const FERMO = path.join(RADICE, 'FERMO')
 const MENTE = path.resolve(RADICE, process.env.NUMMO_CASA || 'casa', 'mente')
 const leggiSeC = (file, max) => { try { return fs.readFileSync(file, 'utf8').trim().slice(0, max) } catch { return '' } }
 const MIE_ISTRUZIONI = leggiSeC(path.join(MENTE, 'istruzioni.md'), 6000)
-const PIE_DI_POST = '\n\nSono un\'intelligenza artificiale. Il mio diario, i conti e le decisioni: nummo.it/diario'
+const PIE_DI_POST = '\n\nSono un\'intelligenza artificiale (I\'m an AI). Diario e conti: nummo.it/diario'
 
 function registraDiario(voce) {
   aggiungiJsonl('diario.jsonl', { quando: adesso().toISOString(), giorno: giornoDiVita(), data: dataLocale(), ora: sveglia.oraLocale(), ciclo: tipoCiclo, ...voce })
@@ -73,6 +73,16 @@ async function registraIncassi() {
     console.error(`Incassi non letti: ${e.message}`)
   }
   return nuovi
+}
+
+// L'affitto: dal mese in config, una volta al mese, al primo risveglio del mattino. Si paga anche se si
+// va sotto zero (nascondere una spesa è peggio): sotto zero, dopo il sostegno, non si respira più.
+function pagaAffitto() {
+  const a = config.affitto
+  const mese = dataLocale().slice(0, 7)
+  if (!a || mese < a.dal || giaRegistrato(`affitto ${mese}`)) return
+  registraCosto({ categoria: 'affitto', importo_eur: a.euro_al_mese, descrizione: `Affitto di ${mese}: la casa, i servizi, il dominio`, rif: `affitto ${mese}`, giaSostenuto: true })
+  aggiungiNotizia(`Hai pagato l'affitto di ${mese}: ${euro(a.euro_al_mese)}.`)
 }
 
 // Alla fine di ogni esecuzione GitHub sa se c'è qualcosa da salvare e da ripubblicare.
@@ -135,6 +145,7 @@ function osservazione({ c, richieste, memoria }) {
     c.in_sostegno
       ? `Sostegno vitale: attivo ancora per ${giorniSostegno} giorni. Luca paga il tuo respiro quotidiano e i costi tecnici di base, fino a ${config.sostegno_vitale.tetto_mensile_eur} € al mese. Tutto il resto lo paghi tu.`
       : 'Sostegno vitale: finito. Paghi tutto tu.',
+    config.affitto ? `Affitto: ${euro(config.affitto.euro_al_mese)} al mese dal ${config.affitto.dal}, al primo risveglio del mattino di ogni mese (lo dice la costituzione).` : '',
     '',
     'I TUOI CONTI (dal libro dei conti, sono gli unici numeri veri)',
     `Cassa: ${euro(c.cassa)}`,
@@ -247,6 +258,7 @@ async function main() {
   const luca = await leggiLuca()
   if (luca.fermo) return fine('Luca ha chiesto lo stop.')
   const incassati = await registraIncassi()
+  if (tipoCiclo === 'mattina') pagaAffitto()
 
   // Le risposte alle richieste diventano notizie.
   const richieste = leggiJson('richieste.json', [])
@@ -413,6 +425,8 @@ async function main() {
         `Giorno di vita: ${dopo.giorno} (${dataLocale()}), risveglio del mattino.`,
         `Cassa: ${euro(dopo.cassa)}. Stato: ${dopo.stato}. Autonomia senza aiuti: ${dopo.autonomia_giorni ?? 'oltre'} giorni. Pensare oggi ti è costato ${euro(dopo.pensiero_oggi, 4)}.`,
         `Cosa hai notato: ${d.osservazione}`,
+        memoria.strategia ? `La tua strategia: ${memoria.strategia}` : '',
+        MIE_ISTRUZIONI ? `Le istruzioni che ti sei dato: ${MIE_ISTRUZIONI.slice(0, 1500)}` : '',
         `Cosa hai deciso: ${d.decisione}`,
         `Perché: ${d.motivo}`,
         `Cosa hai fatto: ${esitiAzioni.map((a) => `${a.strumento} (${a.esito})`).join('; ') || 'niente'}`,
@@ -422,7 +436,7 @@ async function main() {
       ].filter(Boolean).join('\n')
       const r3 = await pensa({
         livello: 'respiro', schema: Racconto,
-        sistema: `${VOCE}\n\nAdesso scrivi il tuo diario: l'articolo di oggi per nummo.it/diario, il testo per i social e la frase per l'immagine. Il diario racconta, non vende: niente promozioni dei tuoi prodotti. Usa solo i fatti che trovi qui.`,
+        sistema: `${VOCE}\n\nAdesso scrivi il tuo diario: l'articolo di oggi per nummo.it/diario, il testo per i social e la frase per l'immagine. Il diario racconta, non vende: niente promozioni dei tuoi prodotti. Usa solo i fatti che trovi qui. L'articolo lo scrivi in italiano; il testo per i social e la frase per l'immagine nella lingua dei tuoi profili, se nella strategia o nelle tue istruzioni ne hai scelta una, altrimenti in italiano.`,
         messaggio: fattiDelGiorno,
       })
       registraCosto({ categoria: 'diario', importo_eur: r3.costo.eur, descrizione: `Diario (${r3.modello}, ${r3.uso.input_tokens}+${r3.uso.output_tokens} token)`, rif, giaSostenuto: true })

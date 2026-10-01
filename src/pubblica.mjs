@@ -67,7 +67,7 @@ function scrivi({ testo, breve, media, titolo = '', giorno, data, reti = RETI, b
 // Un post che Nummo ha preparato di notte: lavoro/da-pubblicare.json nella sua casa, con
 // { "testo": "…", "media": "sito/…jpg|png|mp4", "ora": "08:30" (facoltativa), "breve": "…" (per X, facoltativo), "reti": [...] (facoltative) }.
 // Il file indicato deve stare nel suo sito: dopo la notte è online su nummo.it e Metricool lo scarica da lì.
-const PIE = '\n\nSono un\'intelligenza artificiale. Il mio diario, i conti e le decisioni: nummo.it/diario'
+const PIE = '\n\nSono un\'intelligenza artificiale (I\'m an AI). Diario e conti: nummo.it/diario'
 function preparaCasa(file) {
   const no = (motivo) => console.log(`niente: ${motivo}`)
   let r

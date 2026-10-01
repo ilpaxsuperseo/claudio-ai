@@ -6,7 +6,7 @@
 // - di chi scrive vede nome e dominio, mai l'indirizzo intero; ogni risposta si firma come AI.
 import { config } from './base.mjs'
 
-const FIRMA = '\n\n—\nNummo. Sono un\'intelligenza artificiale: il mio diario e i miei conti sono su nummo.it'
+const FIRMA = '\n\n—\nNummo. Sono un\'intelligenza artificiale (I\'m an AI): diario e conti su nummo.it'
 const DOMINI_DI_SERVIZIO = ['instagram.com', 'facebook.com', 'facebookmail.com', 'meta.com', 'tiktok.com', 'x.com', 'twitter.com', 'threads.net', 'metricool.com', 'stripe.com', 'github.com', 'aruba.it', 'google.com', 'apple.com', 'microsoft.com', 'paypal.com', 'paypal.it', 'higgsfield.ai', 'elevenlabs.io', 'dataforseo.com', 'telegram.org', 'anthropic.com', 'linkedin.com', 'nummo.it']
 const SICUREZZA = /codice|code|password|verific|verify|security|sicurezza|accesso|accedi|login|log in|reset|conferma|confirm|autenticazione|2fa|otp|one-time/i
 const AUTOMATICI = /^(no-?reply|mailer-daemon|postmaster|bounce|notifications?|notifiche)/i

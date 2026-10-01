@@ -90,7 +90,13 @@ metricool:
 # Stripe (account di Luca, chiave limitata in .env/secrets). Le mance si possono creare subito; i prodotti
 # solo dopo il via del commercialista (codice ATECO, INPS, IVA): allora vendite_attive diventa true.
 stripe:
-  vendite_attive: false
+  vendite_attive: true   # accese da Luca il 1/10/2026, prima del parere di Fiscozen
+
+# L'affitto (costituzione → affitto): ogni mese dal mese indicato, al primo risveglio del mattino.
+# Conta anche nell'autonomia, perché l'autonomia è «quanto vivrei se il sostegno finisse oggi».
+affitto:
+  dal: '2027-01'
+  euro_al_mese: 30
 
 # I suoi profili (nome utente). Quelli vuoti non compaiono sul sito.
 social:

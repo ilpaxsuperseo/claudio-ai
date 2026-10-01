@@ -120,7 +120,9 @@ export function conti(tutte = voci()) {
 
   // Quanto costa vivere un giorno pagando tutto (autonomia), e quanto costa solo respirare (morte).
   // Il diario lo paga sempre Luca: non accorcia la vita di Nummo.
-  const costoGiorno = mediaGiornaliera(tutte, (v) => !pagatoDaLuca(v.categoria), oggi) ?? config.respiro_stimato_eur_giorno
+  // L'affitto (dal mese in config) è un costo fisso: entra nel costo di un giorno, ma non due volte.
+  const affittoGiorno = (config.affitto?.euro_al_mese ?? 0) / 30
+  const costoGiorno = (mediaGiornaliera(tutte, (v) => !pagatoDaLuca(v.categoria) && v.categoria !== 'affitto', oggi) ?? config.respiro_stimato_eur_giorno) + affittoGiorno
   const costoRespiro = mediaGiornaliera(tutte, (v) => v.categoria === 'respiro', oggi) ?? config.respiro_stimato_eur_giorno
   const autonomiaGiorni = costoGiorno > 0 ? cassa / costoGiorno : Infinity
   const morto = tutte.some((v) => v.tipo === 'morte')
