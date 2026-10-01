@@ -1,9 +1,12 @@
 // Una chiacchierata con Luca, fuori dai cicli: node src/parla.mjs "messaggio"
 // Senza messaggio dice come sta. Ogni risposta la paga Nummo e finisce nel suo diario pubblico.
+// Gira sul Mac: scrive solo nel registro del Mac (dati/mac/esiti.jsonl); conti, chiacchierate e memoria
+// li aggiorna GitHub al controllo dopo (src/esiti.mjs).
 import fs from 'node:fs'
 import path from 'node:path'
-import { RADICE, leggiJsonl, aggiungiJsonl, leggiJson, scriviJson, adesso, dataLocale, giornoDiVita, euro, arrotonda, config } from './base.mjs'
-import { voci, conti, registraCosto, puoPagare } from './registro.mjs'
+import { RADICE, leggiJsonl, leggiJson, adesso, dataLocale, giornoDiVita, euro, arrotonda, config } from './base.mjs'
+import { voci, conti, puoPagare } from './registro.mjs'
+import { scriviEsito, inSospeso, costiInSospeso } from './esiti.mjs'
 import { pensa, costoMassimo, Risposta } from './cervello.mjs'
 import { VOCE } from './voce.mjs'
 import { NOMI_STATO, durata, centesimi } from './banconota.mjs'
@@ -16,7 +19,7 @@ function comeSta() {
   const ultima = leggiJsonl('diario.jsonl').filter((d) => d.decisione).at(-1)
   const attesa = leggiJson('richieste.json', []).filter((r) => r.stato === 'in_attesa')
   return [
-    `Giorno ${c.giorno}. Cassa ${euro(c.cassa)}. Stato: ${NOMI_STATO[c.stato]}.`,
+    `Giorno ${c.giorno}. Cassa ${euro(c.cassa - costiInSospeso())}. Stato: ${NOMI_STATO[c.stato]}.`,
     `Senza aiuti vivrebbe ancora ${durata(c.autonomia_giorni)}. Oggi pensare gli è costato ${centesimi(c.pensiero_oggi)}.`,
     ultima ? `Ultima decisione (giorno ${ultima.giorno}): ${ultima.decisione}` : 'Nessuna decisione ancora.',
     attesa.length ? `Aspetta una tua risposta su: ${attesa.map((r) => `${r.id} (${r.dettagli.slice(0, 80)}…)`).join('; ')}` : 'Nessuna richiesta in attesa.',
@@ -42,7 +45,7 @@ async function main() {
   const c = conti()
   const diari = leggiJsonl('diario.jsonl').filter((d) => d.decisione).slice(-5)
   const memoria = leggiJson('memoria.json', { strategia: '', lezioni: [], appunti: [] })
-  const chiacchierate = leggiJsonl('conversazioni.jsonl').slice(-6)
+  const chiacchierate = [...leggiJsonl('conversazioni.jsonl'), ...inSospeso().filter((e) => e.tipo === 'conversazione' && e.nummo)].slice(-6)
   const messaggio = [
     `Giorno di vita: ${c.giorno}. Cassa: ${euro(c.cassa)}. Stato: ${c.stato}. Autonomia senza aiuti: ${c.autonomia_giorni ?? 'oltre'} giorni.`,
     '',
@@ -57,24 +60,24 @@ async function main() {
   ].join('\n')
 
   const massimo = await costoMassimo('respiro', SISTEMA + messaggio)
-  if (!puoPagare('conversazione', massimo))
+  if (!puoPagare('conversazione', massimo + costiInSospeso()))
     return console.log(`Nummo non ha abbastanza soldi per risponderti: servono fino a ${euro(massimo, 4)}, in cassa ne ha ${euro(c.cassa, 4)}.`)
 
-  const rif = `conversazione ${adesso().toISOString()}`
+  const id = adesso().toISOString()
+  const base = { tipo: 'conversazione', id, giorno: c.giorno, data: dataLocale() }
   let r
   try {
     r = await pensa({ livello: 'respiro', sistema: SISTEMA, messaggio, schema: Risposta })
   } catch (e) {
-    if (e.costo) registraCosto({ categoria: 'conversazione', importo_eur: e.costo.eur, descrizione: `Chiacchierata con Luca non riuscita (${e.modello}): ${e.message}`, rif, giaSostenuto: true })
+    if (e.costo) scriviEsito({ ...base, costo_eur: arrotonda(e.costo.eur, 6), modello: e.modello, descrizione: `Chiacchierata con Luca non riuscita (${e.modello}): ${e.message}` })
     throw e
   }
-  registraCosto({ categoria: 'conversazione', importo_eur: r.costo.eur, descrizione: `Chiacchierata con Luca (${r.modello}, ${r.uso.input_tokens}+${r.uso.output_tokens} token)`, rif, giaSostenuto: true })
-  aggiungiJsonl('conversazioni.jsonl', { quando: adesso().toISOString(), giorno: c.giorno, data: dataLocale(), luca: testo, nummo: r.decisione.risposta, costo_eur: arrotonda(r.costo.eur, 6), modello: r.modello })
-  if (r.decisione.da_ricordare.trim()) {
-    memoria.appunti = [...(memoria.appunti ?? []), `Giorno ${c.giorno}, da una chiacchierata con Luca: ${r.decisione.da_ricordare.trim()}`].slice(-20)
-    scriviJson('memoria.json', memoria)
-  }
-  console.log(`Nummo: ${r.decisione.risposta}\n\n(Questa risposta gli è costata ${centesimi(r.costo.eur)}. In cassa gli restano ${euro(conti().cassa)}.)`)
+  scriviEsito({
+    ...base, luca: testo, nummo: r.decisione.risposta, costo_eur: arrotonda(r.costo.eur, 6), modello: r.modello,
+    descrizione: `Chiacchierata con Luca (${r.modello}, ${r.uso.input_tokens}+${r.uso.output_tokens} token)`,
+    da_ricordare: r.decisione.da_ricordare.trim() || undefined,
+  })
+  console.log(`Nummo: ${r.decisione.risposta}\n\n(Questa risposta gli è costata ${centesimi(r.costo.eur)}. In cassa gli restano ${euro(conti().cassa - costiInSospeso())}.)`)
 }
 
 main().catch((e) => {

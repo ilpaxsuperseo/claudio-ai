@@ -133,7 +133,7 @@ test('la sveglia: ora italiana, cambio d\'ora, limiti', () => {
   assert.equal(sveglia.interpreta('11:00', mezzogiorno).prossima.toISOString(), '2026-10-02T09:00:00.000Z') // già passata: domani
   assert.equal(sveglia.interpreta('domani alle 03.30', mezzogiorno).prossima.toISOString(), '2026-10-02T01:30:00.000Z')
   assert.match(sveglia.interpreta('12:30', mezzogiorno).errore, /troppo presto/)
-  assert.match(sveglia.interpreta('2026-10-05 10:00', mezzogiorno).errore, /troppo lontano/)
+  assert.match(sveglia.interpreta('2026-10-09 10:00', mezzogiorno).errore, /troppo lontano/)
   assert.match(sveglia.interpreta('quando mi pare', mezzogiorno).errore, /non capisco/)
 })
 
@@ -161,4 +161,19 @@ test('il colore della pagina segue il taglio della cassa', () => {
   assert.equal(taglio(50, 'MORTO').nome, 'nessuno')
   assert.equal(durata(3300), '9 anni')
   assert.equal(durata(45), '45 giorni')
+})
+
+test('gli esiti del Mac entrano nei conti una volta sola', async () => {
+  const { scriviEsito, applicaEsiti, costiInSospeso } = await import('../src/esiti.mjs')
+  fs.writeFileSync(path.join(cartella, 'lavori.json'), JSON.stringify([{ id: 'L900', giorno: 5, compito: 'prova', budget_eur: 1, stato: 'in_coda' }]))
+  scriviEsito({ tipo: 'lavoro', id: 'L900', giorno: 5, stato: 'fatto', riassunto: 'fatto', file: [], costo_token_eur: 0.2, sportello: [{ servizio: 'dataforseo', costo_eur: 0.05 }], costo_eur: 0.25, modello: 'prova' })
+  scriviEsito({ tipo: 'conversazione', id: '2026-10-05T07:00:00.000Z', giorno: 5, data: '2026-10-05', luca: 'ciao', nummo: 'ciao', costo_eur: 0.01, modello: 'prova', descrizione: 'prova' })
+  assert.equal(Math.round(costiInSospeso() * 100), 26)
+  const prima = voci().length
+  assert.equal(applicaEsiti(), 2)
+  assert.equal(applicaEsiti(), 0) // la seconda volta non rifà niente
+  assert.equal(voci().length, prima + 3) // token, sportello, chiacchierata
+  assert.equal(costiInSospeso(), 0)
+  assert.equal(JSON.parse(fs.readFileSync(path.join(cartella, 'lavori.json'), 'utf8'))[0].stato, 'fatto')
+  assert.ok(verificaCatena().ok ?? verificaCatena())
 })

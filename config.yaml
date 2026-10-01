@@ -36,13 +36,14 @@ sostegno_vitale:
 # Costi che paga sempre Luca, anche dopo il sostegno: raccontare l'esperimento è compito suo.
 pagati_da_luca: [diario]
 
-# La sveglia: il risveglio del mattino è fisso; gli altri li decide Nummo (e li paga lui).
+# La sveglia la decide Nummo: il risveglio principale parte alle 7:23 finché non lo sposta lui
+# («mattino HH:MM»); gli altri se li mette quando vuole e li paga. Un'ora di distanza: il controllo è orario.
 sveglia:
   mattina: '07:23'
   min_intervallo_ore: 1
-  massimo_extra_al_giorno: 6
+  massimo_extra_al_giorno: 24   # di fatto nessun tetto: più di uno all'ora il controllo non ne fa
 
-# Il lavoro notturno sul Mac mini: tetto di spesa per notte secondo lo stato (euro).
+# I lavori nella casa sul Mac mini (a qualsiasi ora): tetto di spesa per giorno secondo lo stato (euro).
 notte:
   ora: '02:00'
   modello: claude-sonnet-5

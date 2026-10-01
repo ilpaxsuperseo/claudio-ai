@@ -21,8 +21,8 @@ git pull -q --rebase --autostash origin main || { echo "Non riesco ad allinearmi
 node src/parla.mjs "$@" || exit 1
 
 [ -z "$*" ] && exit 0
-git add dati 2>/dev/null
+git add dati/mac 2>/dev/null   # il Mac scrive solo il suo registro: conti e chiacchierate li aggiorna GitHub
 git diff --cached --quiet && exit 0
 git commit -q -m "Chiacchierata con Luca, giorno $(node -e "import('./src/base.mjs').then(b=>console.log(b.giornoDiVita()))")" &&
   git push -q origin main &&
-  gh workflow run nummo.yml --repo $REPO -f ciclo=solo-sito >/dev/null 2>&1   # il sito si aggiorna da solo
+  gh workflow run nummo.yml --repo $REPO -f ciclo=controlla >/dev/null 2>&1   # GitHub applica la chiacchierata e aggiorna il sito

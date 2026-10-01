@@ -1,4 +1,5 @@
-// La sveglia: il risveglio del mattino è fisso (lo paga il sostegno), gli altri li decide Nummo.
+// La sveglia la decide Nummo. Il risveglio principale (una volta al giorno, col diario; lo paga il sostegno)
+// è alle 7:23 finché non lo sposta lui con «mattino HH:MM»; gli altri se li mette quando vuole e li paga.
 // GitHub controlla ogni ora; qui si decide se è il momento. Gli orari sono sempre in ora italiana.
 import { config, leggiJson, scriviJson, leggiJsonl, adesso, dataLocale } from './base.mjs'
 
@@ -48,24 +49,37 @@ export function interpreta(testo, ora = adesso()) {
   const prossima = daLocale(data, hhmm.padStart(5, '0'))
   const ore = (prossima - ora) / 3600000
   if (ore < S().min_intervallo_ore) return { errore: `troppo presto: fra un risveglio e l'altro serve almeno ${S().min_intervallo_ore} ora` }
-  if (ore > 48) return { errore: 'troppo lontano: la sveglia si mette al massimo 48 ore avanti' }
+  if (ore > 24 * 7) return { errore: 'troppo lontano: la sveglia si mette al massimo 7 giorni avanti' }
   return { prossima }
 }
 
 export const leggi = () => leggiJson('sveglia.json', { prossima: null })
 
+// L'ora del risveglio principale: quella scelta da lui, altrimenti quella di partenza.
+export const oraDelMattino = () => leggi().mattino ?? S().mattina
+
 export function imposta(testo, motivo = '') {
+  // «mattino 09:30»: sposta il risveglio principale di ogni giorno (resta uno al giorno, col diario).
+  const m = String(testo ?? '').toLowerCase().match(/mattin[oa]\D*?(\d{1,2})[:.](\d{2})/)
+  if (m) {
+    const [h, mi] = [Number(m[1]), Number(m[2])]
+    if (h > 23 || mi > 59) return `sveglia non impostata: «${m[1]}:${m[2]}» non è un'ora valida`
+    const ora = `${String(h).padStart(2, '0')}:${m[2]}`
+    const giaFatto = !mattinaDovuta() && oraLocale() >= oraDelMattino()
+    scriviJson('sveglia.json', { ...leggi(), mattino: ora })
+    return `risveglio principale spostato alle ${ora}${giaFatto ? ', da domani' : ''}`
+  }
   const r = interpreta(testo)
   if (r.errore) return `sveglia non impostata: ${r.errore}`
-  scriviJson('sveglia.json', { prossima: r.prossima.toISOString(), motivo, impostata: adesso().toISOString() })
+  scriviJson('sveglia.json', { ...leggi(), prossima: r.prossima.toISOString(), motivo, impostata: adesso().toISOString() })
   return `sveglia impostata: ${dataLocale(r.prossima) === dataLocale() ? 'oggi' : dataLocale(r.prossima)} alle ${oraLocale(r.prossima)}`
 }
 
-export const spegni = () => scriviJson('sveglia.json', { prossima: null })
+export const spegni = () => scriviJson('sveglia.json', { ...leggi(), prossima: null })
 
-// Il risveglio del mattino è dovuto se sono passate le 7:23 italiane e oggi non c'è ancora stato.
+// Il risveglio principale è dovuto se è passata la sua ora (italiana) e oggi non c'è ancora stato.
 export function mattinaDovuta(ora = adesso()) {
-  if (oraLocale(ora) < S().mattina) return false
+  if (oraLocale(ora) < oraDelMattino()) return false
   // Un tentativo finito in errore senza costi non conta: si riprova al controllo dell'ora dopo.
   return !leggiJsonl('diario.jsonl').some((d) => d.data === dataLocale(ora) && d.ciclo === 'mattina' && !d.errore)
 }

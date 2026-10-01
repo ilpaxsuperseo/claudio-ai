@@ -18,3 +18,5 @@ notte/sportello-*.jsonl
 notte/notte.log
 notte/sveglia.log
 notte/numeri-*.json*
+notte/turno.lucchetto
+notte/in-corso.json

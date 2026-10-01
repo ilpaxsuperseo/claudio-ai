@@ -1,6 +1,6 @@
 #!/bin/zsh
-# Ogni mattina (LaunchAgent com.masrepassaro.nummo-pubblica, 7:50 e 9:50): programma su Metricool
-# il post del giorno di Nummo. Passa dal connettore Metricool dell'account di Luca, ma un guardiano
+# Ogni ora al minuto 50 (LaunchAgent com.masrepassaro.nummo-pubblica): se il post del giorno di Nummo è
+# pronto e non è ancora uscito, lo programma su Metricool. Passa dal connettore Metricool dell'account di Luca, ma un guardiano
 # (notte/controlla-pubblicazione.mjs) consente solo il post preparato, e solo sul brand di Nummo.
 # Uso a mano: strumenti/pubblica.sh        → il post del giorno
 #             strumenti/pubblica.sh casa   → il post che Nummo ha preparato di notte (lo lancia il turno di notte)
@@ -46,4 +46,4 @@ if [ $codice = 1 ]; then
   exit 1
 fi
 [ $codice = 3 ] && avvisa "Il post di Nummo è partito solo in parte: ${esito:0:300}"
-git add dati && git commit -q -m "Post ${1:+della notte }programmato su Metricool" && git pull -q --rebase --autostash origin main && git push -q origin main
+git add dati/pubblicati.json && git commit -q -m "Post ${1:+della notte }programmato su Metricool" && git pull -q --rebase --autostash origin main && git push -q origin main

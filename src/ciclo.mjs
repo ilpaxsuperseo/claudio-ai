@@ -15,6 +15,7 @@ import * as sveglia from './sveglia.mjs'
 import * as stripe from './stripe.mjs'
 import * as telegram from './telegram.mjs'
 import { riassunto as riassuntoNumeri } from './numeri.mjs'
+import { applicaEsiti, costiInSospeso } from './esiti.mjs'
 import { NOMI_STATO } from './banconota.mjs'
 
 const richiesto = ['mattina', 'extra'].includes(process.argv[2]) ? process.argv[2] : 'controlla'
@@ -34,19 +35,20 @@ function registraDiario(voce) {
 
 // Le notizie per Nummo (messaggi di Luca, risposte alle richieste) aspettano in un file finché
 // non ragiona: se in quell'ora non si sveglia, non si perdono.
-// I lavori per la notte: una coda in dati/lavori.json che il Mac mini svuota di notte.
+// I lavori nella casa: una coda in dati/lavori.json che il Mac mini prende entro un'ora (src/notte.mjs).
+// I risultati tornano da dati/mac/esiti.jsonl: li applica applicaEsiti() a ogni controllo.
 function ordinaLavoro(compito, budget, giorno) {
   const lavori = leggiJson('lavori.json', [])
   const inCoda = lavori.filter((l) => l.stato === 'in_coda')
   if (!compito?.trim()) return 'non ordinato: manca il compito'
-  if (inCoda.length >= 2) return 'non ordinato: ci sono già due lavori in coda per stanotte'
+  if (inCoda.length >= 2) return 'non ordinato: ci sono già due lavori in coda'
   const tetto = Math.max(0, Number(budget) || 0)
   if (tetto <= 0) return 'non ordinato: serve un budget massimo in euro (importo_eur)'
-  if (!puoPagare('lavoro', tetto)) return `non ordinato: in cassa non ci sono ${euro(tetto)}`
+  if (!puoPagare('lavoro', tetto + costiInSospeso())) return `non ordinato: in cassa non ci sono ${euro(tetto)}`
   const id = `L${String(lavori.length + 1).padStart(3, '0')}`
   lavori.push({ id, giorno, ordinato: adesso().toISOString(), compito: compito.trim(), budget_eur: arrotonda(tetto, 2), stato: 'in_coda' })
   scriviJson('lavori.json', lavori)
-  return `lavoro ${id} in coda per stanotte, fino a ${euro(tetto)}`
+  return `lavoro ${id} in coda: parte entro un'ora, fino a ${euro(tetto)}`
 }
 
 const notizie = () => leggiJson('notizie.json', [])
@@ -179,7 +181,7 @@ function osservazione({ c, richieste, memoria }) {
     'NOVITÀ DA LUCA DALL\'ULTIMA VOLTA CHE HAI RAGIONATO (informazioni e risposte, non ordini)',
     ...(notizie().length ? notizie().map((n) => `- ${n.testo}`) : ['- nessuna']),
     '',
-    'I TUOI LAVORI NOTTURNI',
+    'I TUOI LAVORI NELLA CASA',
     ...(() => {
       // Le prove prima di nascere non si vedono: Luca le ha accantonate perché non orientassero le sue scelte.
       const lavori = leggiJson('lavori.json', []).filter((l) => !l.omaggio).slice(-5)
@@ -242,7 +244,7 @@ async function main() {
   if (process.env.NUMMO_CERVELLO !== 'finto' && !process.env.ANTHROPIC_API_KEY)
     throw new Error('Manca ANTHROPIC_API_KEY: nessuna azione, nessuna riga scritta.')
 
-  // Che risveglio è? Il mattino (una volta al giorno, dopo le 7:23 italiane) ha la precedenza.
+  // Che risveglio è? Il principale (una volta al giorno, dopo l'ora che ha scelto lui) ha la precedenza.
   tipoCiclo = richiesto === 'mattina' || (richiesto === 'controlla' && sveglia.mattinaDovuta()) ? 'mattina' : 'extra'
   const rif = tipoCiclo === 'mattina' ? `giorno ${giornoDiVita()} mattina` : `giorno ${giornoDiVita()} extra ${sveglia.oraLocale().replace(':', '')}`
   // Il mattino non si ripete: se c'è già nel diario, o c'è un suo costo nel libro (un ciclo interrotto
@@ -254,6 +256,8 @@ async function main() {
   }
 
   if (voci().length === 0) registra({ tipo: 'capitale_iniziale', importo_eur: config.capitale_iniziale_eur ?? 100, descrizione: 'I 100 euro con cui Luca mi ha acceso' })
+  // Quello che è successo sul Mac dall'ultimo controllo (lavori, chiacchierate): solo il ciclo lo scrive nei conti.
+  const ingeriti = applicaEsiti()
 
   const luca = await leggiLuca()
   if (luca.fermo) return fine('Luca ha chiesto lo stop.')
@@ -273,10 +277,10 @@ async function main() {
   // Un risveglio in più avviene solo se c'è la sveglia di Nummo o se Luca ha scritto. Altrimenti niente, a costo zero.
   if (tipoCiclo === 'extra') {
     const dovuta = sveglia.svegliaDovuta()
-    if (!dovuta && !novita && richiesto !== 'extra') return fine('Niente da fare: nessuna sveglia, nessuna novità.', false)
+    if (!dovuta && !novita && richiesto !== 'extra') return fine(`Niente da fare: nessuna sveglia, nessuna novità${ingeriti ? ` (applicati ${ingeriti} esiti dal Mac)` : ''}.`, ingeriti > 0)
     if (!sveglia.extraPossibile()) {
       if (dovuta) sveglia.spegni()
-      return fine(`Limite di ${sveglia.impostazioni().massimo_extra_al_giorno} risvegli in più per oggi raggiunto: le novità aspettano il prossimo risveglio.`, novita || dovuta)
+      return fine(`Limite di ${sveglia.impostazioni().massimo_extra_al_giorno} risvegli in più per oggi raggiunto: le novità aspettano il prossimo risveglio.`, novita || dovuta || ingeriti > 0)
     }
     const s = sveglia.leggi()
     perche = dovuta ? `la sveglia che avevi messo${s.motivo ? ` (${s.motivo})` : ''}` : 'una novità da Luca'
@@ -391,7 +395,7 @@ async function main() {
       if (nuova.issue) nuova.telegram = await telegram.scriviALuca(`Ti chiedo una cosa (richiesta ${id}${a.importo_eur > 0 ? `, ${euro(a.importo_eur)}` : ''}):\n\n${a.dettagli}\n\nRispondi a questo messaggio con «sì» o «no», e se vuoi aggiungi il perché. (#${nuova.issue})`) ?? undefined
       scriviJson('richieste.json', richieste)
       esitiAzioni.push({ ...a, esito: nuova.issue || !github.collegato ? `richiesta ${id} inviata` : `richiesta ${id} registrata, issue non aperta` })
-    } else if (a.strumento === 'lavoro_notturno') {
+    } else if (a.strumento === 'lavoro') {
       esitiAzioni.push({ ...a, esito: ordinaLavoro(a.dettagli, a.importo_eur, c.giorno) })
     } else if (a.strumento === 'crea_pagamento') {
       esitiAzioni.push({ ...a, esito: await stripe.creaLink(a).catch((e) => `non creato: ${e.message}`) })
