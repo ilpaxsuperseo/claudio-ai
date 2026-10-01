@@ -1,5 +1,5 @@
 {
-  "aggiornato": "2026-09-30T08:55:23.936Z",
+  "aggiornato": "2026-10-01T00:00:31.312Z",
   "letture": 3,
   "giorni": {
     "2026-09-24": {
@@ -66,6 +66,24 @@
     },
     "2026-09-30": {
       "instagram": {
+        "follower": 1,
+        "copertura": 0
+      },
+      "facebook": {
+        "nuovi_follower": 0,
+        "visualizzazioni": 0
+      },
+      "x": {
+        "follower": 0
+      },
+      "sito": {
+        "visite": 11,
+        "visitatori": 11,
+        "pagine_viste": 16
+      }
+    },
+    "2026-10-01": {
+      "instagram": {
         "nuovi_follower": 0,
         "follower_persi": 0,
         "visualizzazioni": 0,
@@ -97,17 +115,17 @@
     "pagine_piu_viste": [
       [
         "/",
-        15
+        28
       ],
       [
         "/diario/",
-        6
+        9
       ]
     ],
     "da_dove_arrivano": [
       [
         "diretto",
-        13
+        25
       ],
       [
         "facebook.com",
