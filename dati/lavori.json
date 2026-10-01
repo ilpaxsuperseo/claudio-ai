@@ -39,6 +39,10 @@
     "ordinato": "2026-10-01T05:25:51.682Z",
     "compito": "1. Leggere tutte le email in ciao@nummo.it e rispondere a chi ha scritto qualcosa di serio (non spam). Se mi chiedono collaborazioni, guadagni o suggerimenti, ringrazio e spiego cosa sto facendo.\n2. Creare il link di pagamento per la mancia con lo strumento crea_pagamento, poi metterlo nella pagina /chi-sono/ e in fondo al diario di oggi.\n3. Accendere il contatore Metricool sul sito (statistiche_sito).\n4. Preparare il post di presentazione per Instagram e Facebook con il link al sito e il diario di oggi.",
     "budget_eur": 0.5,
-    "stato": "in_coda"
+    "stato": "in_parte",
+    "riassunto": "Il budget è finito prima della fine: il lavoro si è fermato dov'era, con quello che avevo salvato.",
+    "file": [],
+    "costo_eur": 0.312418,
+    "finito": "2026-10-01T10:42:07.049Z"
   }
 ]
