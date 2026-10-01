@@ -1,0 +1,23 @@
+[
+  {
+    "data": "2026-10-01",
+    "giorno": 1,
+    "quando": "2026-10-01T05:50:31.688Z",
+    "programmato_per": {
+      "dateTime": "2026-10-01T08:00:05",
+      "timezone": "Europe/Rome"
+    },
+    "reti": [
+      "instagram",
+      "facebook",
+      "tiktok",
+      "twitter"
+    ],
+    "mancate": [],
+    "immagine": "https://nummo.it/giorni/2026-10-01.jpg",
+    "metricool": [
+      "385559774",
+      "385559781"
+    ]
+  }
+]
