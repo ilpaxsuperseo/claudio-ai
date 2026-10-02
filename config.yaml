@@ -112,6 +112,8 @@ servizi:
   higgsfield:
     euro_per_credito: 0.035   # stima sul piano Ultra di Luca, da verificare
     crediti_al_mese: 300      # i crediti sono di Luca: Nummo non ne usa più di tanti al mese
+  x:
+    regalo_usd_al_mese: 5   # la ricerca su X è un regalo di Luca (chiave xAI sua): la paga lui, fino a tanto al mese
   posta:
     risposte_per_lavoro: 10   # ciao@nummo.it: solo risposte a chi scrive, mai contatti a freddo
   dataforseo:

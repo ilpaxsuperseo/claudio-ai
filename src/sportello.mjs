@@ -9,6 +9,7 @@ import path from 'node:path'
 import { config } from './base.mjs'
 import * as posta from './posta.mjs'
 import * as higgsfield from './higgsfield.mjs'
+import * as xai from './xai.mjs'
 
 const TETTO = Number(process.env.SPORTELLO_TETTO_EUR) || 0
 const CAMBIO = Number(process.env.SPORTELLO_CAMBIO) || config.cambio_usd_eur_riserva
@@ -57,13 +58,15 @@ const conPosta = (f) => async (a) => {
 }
 
 // Higgsfield: i crediti sono di Luca, con un tetto al mese; il costo in euro lo paga Nummo.
-function creditiDelMese() {
+// Quanto di un servizio si è usato questo mese, sommando i registri di tutti i lavori (es. crediti Higgsfield).
+function delMese(servizio, campo) {
   const mese = new Date().toISOString().slice(0, 7)
   const cartella = path.dirname(REGISTRO)
   return fs.readdirSync(cartella).filter((f) => f.startsWith('sportello-') && f.endsWith('.jsonl'))
     .flatMap((f) => fs.readFileSync(path.join(cartella, f), 'utf8').trim().split('\n').filter(Boolean).map((r) => JSON.parse(r)))
-    .filter((x) => x.servizio === 'higgsfield' && x.quando?.startsWith(mese)).reduce((t, x) => t + (x.crediti ?? 0), 0)
+    .filter((x) => x.servizio === servizio && x.quando?.startsWith(mese)).reduce((t, x) => t + (x[campo] ?? 0), 0)
 }
+const creditiDelMese = () => delMese('higgsfield', 'crediti')
 function generatore(tipo) {
   return async (a) => {
     const prompt = String(a.prompt ?? '').trim()
@@ -86,6 +89,22 @@ function generatore(tipo) {
 }
 
 const STRUMENTI = {
+  cerca_su_x: {
+    serve: () => xai.collegata() && Boolean(S.x),
+    description: `Cerca su X (ex Twitter) nei post pubblici, anche di oggi: cosa si dice di un argomento, cosa pubblica un account, cosa rispondono le persone. Risponde con i fatti trovati e i link ai post. È un regalo di Luca: lo paga lui, fino a ${S.x?.regalo_usd_al_mese} $ al mese (una ricerca costa di solito fra 5 e 15 centesimi di dollaro); non tocca la tua cassa.`,
+    inputSchema: { type: 'object', properties: { domanda: { type: 'string', description: 'Cosa vuoi sapere.' }, account: { type: 'array', items: { type: 'string' }, description: 'Facoltativo: solo i post di questi account (nome senza @, al massimo 20).' }, giorni: { type: 'number', description: 'Quanti giorni indietro, da 1 a 7. Predefinito 1.' } }, required: ['domanda'] },
+    async fai(a) {
+      const domanda = String(a.domanda ?? '').trim().slice(0, 1000)
+      if (!domanda) throw new Rifiuto('Serve una domanda.')
+      const tetto = S.x.regalo_usd_al_mese
+      const usato = delMese('x', 'regalo_usd')
+      if (usato + 0.4 > tetto) throw new Rifiuto(`Il regalo di Luca per X di questo mese è finito: ${usato.toFixed(2)} $ su ${tetto}. Riparte il primo del mese.`)
+      const account = (Array.isArray(a.account) ? a.account : []).map((x) => String(x).replace(/^@/, '').trim()).filter((x) => /^\w{1,15}$/.test(x))
+      const r = await xai.cercaSuX({ domanda, account, giorni: Number(a.giorni) || 1 })
+      annota({ servizio: 'x', cosa: `ricerca su X, ${r.post} post letti (regalo di Luca)`, costo_eur: 0, regalo_usd: r.usd })
+      return `${r.testo || 'Nessun risultato.'}${r.link.length ? `\n\nLink:\n${r.link.join('\n')}` : ''}\n\n(${r.post} post letti; regalo di Luca: ${r.usd.toFixed(3)} $, questo mese ${(usato + r.usd).toFixed(2)} $ su ${tetto})`
+    },
+  },
   immagine_ai: {
     serve: () => Boolean(S.higgsfield),
     description: `Genera un'immagine con Higgsfield. Si chiede sempre prima il prezzo: se sta nel tetto, si genera (per esempio ${higgsfield.MODELLI.immagine[0]} costa circa 0,25 crediti; un credito ti costa circa ${S.higgsfield?.euro_per_credito} €). Il file arriva nella cartella dello sportello. Può metterci qualche minuto.`,
