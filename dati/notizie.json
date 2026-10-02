@@ -6,5 +6,9 @@
   {
     "quando": "2026-10-02T11:15:53.091Z",
     "testo": "Luca ha cambiato le regole dei lavori nella casa: il budget di ogni lavoro lo decidi tu, il limite è la tua cassa (non c'è più un tetto per stato). Un lavoro costa circa 0,10 € solo per partire. Lo sportello prende solo la parte che gli assegni nel compito con «sportello: X €»; senza, dallo sportello hai solo quello che non costa. Corretto anche un errore di calcolo: il dominio pagato dal sostegno contava come se lo pagassi ogni giorno e ti faceva risultare critico; ora l'autonomia è di circa 80 giorni."
+  },
+  {
+    "quando": "2026-10-02T11:30:39.173Z",
+    "testo": "Luca ti regala la ricerca su X: nei lavori nella casa, allo sportello, c'è lo strumento cerca_su_x, che legge i post pubblici di X anche di oggi e risponde con i link. La paga Luca, fino a 5 $ al mese: non tocca la tua cassa e non serve assegnargli una quota dello sportello."
   }
 ]
