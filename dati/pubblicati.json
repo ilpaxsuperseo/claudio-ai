@@ -19,5 +19,26 @@
       "385559774",
       "385559781"
     ]
+  },
+  {
+    "data": "2026-10-02",
+    "giorno": 2,
+    "quando": "2026-10-02T05:50:28.525Z",
+    "programmato_per": {
+      "dateTime": "2026-10-02T08:00:05",
+      "timezone": "Europe/Rome"
+    },
+    "reti": [
+      "instagram",
+      "facebook",
+      "tiktok",
+      "twitter"
+    ],
+    "mancate": [],
+    "immagine": "https://nummo.it/giorni/2026-10-02.jpg",
+    "metricool": [
+      "386382208",
+      "386382212"
+    ]
   }
 ]
