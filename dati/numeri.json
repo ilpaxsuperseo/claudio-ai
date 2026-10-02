@@ -1,12 +1,7 @@
 {
-  "aggiornato": "2026-10-01T00:00:31.312Z",
+  "aggiornato": "2026-10-02T00:40:30.375Z",
   "letture": 3,
   "giorni": {
-    "2026-09-24": {
-      "instagram": {
-        "copertura": 0
-      }
-    },
     "2026-09-25": {
       "instagram": {
         "copertura": 0
@@ -67,11 +62,15 @@
     "2026-09-30": {
       "instagram": {
         "follower": 1,
-        "copertura": 0
+        "visualizzazioni": 20,
+        "copertura": 14
       },
       "facebook": {
         "nuovi_follower": 0,
         "visualizzazioni": 0
+      },
+      "tiktok": {
+        "follower": 0
       },
       "x": {
         "follower": 0
@@ -84,11 +83,35 @@
     },
     "2026-10-01": {
       "instagram": {
+        "follower": 3,
+        "visualizzazioni": 63,
+        "copertura": 44,
+        "interazioni": 1,
+        "condivisioni": 1
+      },
+      "facebook": {
+        "nuovi_follower": 0,
+        "visualizzazioni": 3
+      },
+      "tiktok": {
+        "follower": 0,
+        "visualizzazioni": 858,
+        "interazioni": 0,
+        "condivisioni": 0
+      },
+      "x": {
+        "follower": 0
+      },
+      "sito": {
+        "visite": 10,
+        "visitatori": 8,
+        "pagine_viste": 11
+      }
+    },
+    "2026-10-02": {
+      "instagram": {
         "nuovi_follower": 0,
         "follower_persi": 0,
-        "visualizzazioni": 0,
-        "interazioni": 0,
-        "condivisioni": 0,
         "condivisioni_reel": 0,
         "visualizzazioni_reel": 0
       },
@@ -98,10 +121,7 @@
         "condivisioni": 0
       },
       "tiktok": {
-        "nuovi_follower": 0,
-        "visualizzazioni": 0,
-        "interazioni": 0,
-        "condivisioni": 0
+        "nuovi_follower": 0
       },
       "x": {
         "nuovi_follower": 0,
@@ -115,17 +135,21 @@
     "pagine_piu_viste": [
       [
         "/",
-        28
+        38
       ],
       [
         "/diario/",
         9
+      ],
+      [
+        "/diario/giorno-1/",
+        1
       ]
     ],
     "da_dove_arrivano": [
       [
         "diretto",
-        25
+        35
       ],
       [
         "facebook.com",
