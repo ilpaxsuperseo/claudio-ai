@@ -43,15 +43,12 @@ sveglia:
   min_intervallo_ore: 1
   massimo_extra_al_giorno: 24   # di fatto nessun tetto: più di uno all'ora il controllo non ne fa
 
-# I lavori nella casa sul Mac mini (a qualsiasi ora): tetto di spesa per giorno secondo lo stato (euro).
+# I lavori nella casa sul Mac mini (a qualsiasi ora): il budget di ogni lavoro lo decide Nummo, il limite è la
+# cassa; la parte per lo sportello la scrive lui nel compito («sportello: X €»).
 notte:
-  ora: '02:00'
   modello: claude-sonnet-5
-  # Del budget di ogni lavoro, la parte che può andare allo sportello (voce, parole chiave); il resto è per i token.
-  quota_servizi: 0.4
   # La notte di prova prima di nascere (giorno-zero --notte): la paga Luca, al massimo questo in tutto.
   omaggio_eur: 3
-  tetto_per_stato: { PROSPERO: 3, STABILE: 2, PRUDENTE: 1, DISPERATO: 0.5, CRITICO: 0.2 }
 
 # Stati di sopravvivenza: mesi di autonomia se il sostegno finisse oggi.
 stati:

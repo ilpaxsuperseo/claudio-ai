@@ -122,7 +122,9 @@ export function conti(tutte = voci()) {
   // Il diario lo paga sempre Luca: non accorcia la vita di Nummo.
   // L'affitto (dal mese in config) è un costo fisso: entra nel costo di un giorno, ma non due volte.
   const affittoGiorno = (config.affitto?.euro_al_mese ?? 0) / 30
-  const costoGiorno = (mediaGiornaliera(tutte, (v) => !pagatoDaLuca(v.categoria) && v.categoria !== 'affitto', oggi) ?? config.respiro_stimato_eur_giorno) + affittoGiorno
+  // Dominio e costi tecnici (infrastruttura) sono già dentro l'affitto: contarli anche qui li conterebbe due volte,
+  // e una spesa una tantum divisa per i primi giorni di vita lo faceva sembrare in fin di vita.
+  const costoGiorno = (mediaGiornaliera(tutte, (v) => !pagatoDaLuca(v.categoria) && !['affitto', 'infrastruttura'].includes(v.categoria), oggi) ?? config.respiro_stimato_eur_giorno) + affittoGiorno
   const costoRespiro = mediaGiornaliera(tutte, (v) => v.categoria === 'respiro', oggi) ?? config.respiro_stimato_eur_giorno
   const autonomiaGiorni = costoGiorno > 0 ? cassa / costoGiorno : Infinity
   const morto = tutte.some((v) => v.tipo === 'morte')

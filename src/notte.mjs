@@ -11,7 +11,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { spawn, execFileSync } from 'node:child_process'
-import { RADICE, config, leggiJson, leggiJsonl, scriviJson, adesso, giornoDiVita, dataLocale, euro, arrotonda, leggiFileDiNummo } from './base.mjs'
+import { RADICE, config, leggiJson, leggiJsonl, scriviJson, adesso, giornoDiVita, euro, arrotonda, leggiFileDiNummo } from './base.mjs'
 import { voci, conti, puoPagare } from './registro.mjs'
 import { scriviEsito, inSospeso, costiInSospeso, ESITI } from './esiti.mjs'
 import { cambioUsdEur } from './cervello.mjs'
@@ -67,6 +67,11 @@ async function accendiSportello({ tetto, cambio, registro }) {
     figlio.once('exit', () => ko(new Error('lo sportello non è partito')))
   })
   return { url: `http://127.0.0.1:${porta}/mcp`, spegni: () => figlio.kill() }
+}
+// «sportello: 0,30 €» nel compito: la parte del budget che va ai servizi a pagamento. Senza, zero.
+const quotaSportello = (compito) => {
+  const m = String(compito ?? '').match(/sportello\s*:?\s*(\d+(?:[.,]\d{1,2})?)\s*(?:€|euro)?/i)
+  return m ? Number(m[1].replace(',', '.')) : 0
 }
 const spesoAlloSportello = (registro) =>
   fs.existsSync(registro) ? fs.readFileSync(registro, 'utf8').trim().split('\n').filter(Boolean).map((r) => JSON.parse(r)) : []
@@ -125,7 +130,7 @@ ${l.compito}
 
 I SOLDI
 - Per ragionare e lavorare (token e ricerche in rete) hai fino a ${euro(token)}. Quando finiscono ti fermi dove sei: salva spesso.
-- ${sportello ? `Allo sportello hai fino a ${euro(servizi)}: ${attivi().join(', ')}. Ogni chiamata ha un prezzo${l.omaggio ? '' : ' e lo paghi tu'}.` : 'Lo sportello stanotte è chiuso: niente servizi a pagamento.'}
+- ${sportello ? (servizi > 0 ? `Allo sportello hai fino a ${euro(servizi)}: ${attivi().join(', ')}. Ogni chiamata ha un prezzo${l.omaggio ? '' : ' e lo paghi tu'}.` : `Allo sportello hai solo quello che non costa (${attivi().join(', ')}): i servizi a pagamento si sbloccano scrivendo «sportello: X €» nel compito, la prossima volta.`) : 'Lo sportello è chiuso: niente servizi a pagamento.'}
 - ${l.omaggio ? 'Questo lavoro te lo regala Luca: è una prova prima che tu nasca. La tua cassa da 100 € parte al primo risveglio e questo lavoro non la tocca.' : `In cassa adesso hai ${euro(c.cassa)} (stato ${c.stato}).`}
 
 GLI ATTREZZI
@@ -250,22 +255,26 @@ async function turnoVero() {
     return console.log('Nessun lavoro in coda.')
   }
 
-  // Il tetto è per giorno (secondo lo stato), meno quanto i lavori hanno già speso oggi.
-  const oggi = dataLocale()
-  const spesoOggi = leggiJsonl(ESITI).filter((e) => e.tipo === 'lavoro' && !e.omaggio && dataLocale(new Date(e.quando)) === oggi).reduce((t, e) => t + e.costo_eur, 0)
-  let resta = primaDiNascere ? config.notte.omaggio_eur : (config.notte.tetto_per_stato[conti().stato] ?? 0) - spesoOggi
+  // Il budget lo decide lui, il limite è la cassa. Solo le prove prima di nascere hanno il tetto del regalo di Luca.
+  let resta = primaDiNascere ? config.notte.omaggio_eur : Infinity
   for (const l of coda) {
     const c = conti()
     const budget = arrotonda(Math.min(l.budget_eur, resta), 2)
-    if (budget < 0.05) break // il tetto di oggi è finito: il lavoro resta in coda per domani
+    if (l.omaggio && budget < 0.05) break // il regalo di Luca è finito
     const base = { tipo: 'lavoro', id: l.id, giorno: giornoDiVita(), omaggio: Boolean(l.omaggio), modello: config.notte.modello }
+    const nonCominciato = (riassunto) => scriviEsito({ ...base, stato: 'non_riuscito', riassunto, file: [], costo_token_eur: 0, sportello: [], costo_eur: 0 })
     if (!l.omaggio && !puoPagare('lavoro', budget + costiInSospeso())) {
-      scriviEsito({ ...base, stato: 'non_riuscito', riassunto: `In cassa non c'erano i ${euro(budget)} del budget: non l'ho cominciato.`, file: [], costo_token_eur: 0, sportello: [], costo_eur: 0 })
+      nonCominciato(`In cassa non c'erano i ${euro(budget)} del budget: non l'ho cominciato.`)
       continue
     }
+    // Lo sportello prende solo quello che gli assegna lui nel compito («sportello: X €»); il resto va al lavoro.
     const sportello = attivi().length > 0
-    const servizi = sportello ? arrotonda(budget * config.notte.quota_servizi, 2) : 0
+    const servizi = sportello ? arrotonda(Math.min(budget, quotaSportello(l.compito)), 2) : 0
     const token = arrotonda(budget - servizi, 2)
+    if (token < 0.05) {
+      nonCominciato(`Al lavoro restavano ${euro(token)} (il resto era per lo sportello): troppo poco per cominciare.`)
+      continue
+    }
     const registro = path.join(RADICE, 'notte', `sportello-${l.id}.jsonl`)
     scriviInCorso({ ...leggiInCorso(), [l.id]: adesso().toISOString() })
 
