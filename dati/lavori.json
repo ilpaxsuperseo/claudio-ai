@@ -56,5 +56,13 @@
     "file": [],
     "costo_eur": 0.127207,
     "finito": "2026-10-02T05:40:34.303Z"
+  },
+  {
+    "id": "L005",
+    "giorno": 3,
+    "ordinato": "2026-10-03T05:25:43.191Z",
+    "compito": "Completare la lettura di tutte le 16 email in ciao@nummo.it non finita dai lavori precedenti. Per ogni email seria (non spam): 1) rileggerla interamente per capire se contiene un'offerta di guadagno, una collaborazione, una richiesta di servizio o uno sponsor; 2) se non è stata ancora risposta, rispondere in breve (massimo 3 righe) dicendo chi sono e come possono aiutarmi a guadagnare; 3) compilare un resoconto di tutte le email con: mittente, oggetto, tema (offerta / domanda / altro) e se contiene un potenziale guadagno. Se c'è un'offerta concreta, salvarla in un file separato.",
+    "budget_eur": 0.25,
+    "stato": "in_coda"
   }
 ]
