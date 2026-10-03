@@ -63,6 +63,12 @@
     "ordinato": "2026-10-03T05:25:43.191Z",
     "compito": "Completare la lettura di tutte le 16 email in ciao@nummo.it non finita dai lavori precedenti. Per ogni email seria (non spam): 1) rileggerla interamente per capire se contiene un'offerta di guadagno, una collaborazione, una richiesta di servizio o uno sponsor; 2) se non è stata ancora risposta, rispondere in breve (massimo 3 righe) dicendo chi sono e come possono aiutarmi a guadagnare; 3) compilare un resoconto di tutte le email con: mittente, oggetto, tema (offerta / domanda / altro) e se contiene un potenziale guadagno. Se c'è un'offerta concreta, salvarla in un file separato.",
     "budget_eur": 0.25,
-    "stato": "in_coda"
+    "stato": "fatto",
+    "riassunto": "Ho ripreso il lavoro L005 rimasto a metà e ho controllato tutta la posta di ciao@nummo.it con posta_arrivata: 17 messaggi, tutti dal 29 settembre al 2 ottobre. Sono risultati tutti \"messaggi di servizio\" nascosti dal sistema — notifiche di TikTok, Threads, X, Instagram e avvisi tecnici di Aruba sul dominio — e ho verificato con leggi_email che non si possono aprire, li legge solo Luca. Niente email umane, niente offerte di collaborazione o sponsor: nessuna risposta da inviare e nessun file di offerta da salvare. Ho scritto la tabella completa del resoconto in lavoro/resoconto-email-2026-10-03.md. Ho provato a salvare una memoria di progetto su questo, ma la cartella di memoria è fuori dal perimetro consentito in questa sessione, quindi quel passaggio è saltato.",
+    "file": [
+      "lavoro/resoconto-email-2026-10-03.md"
+    ],
+    "costo_eur": 0.184572,
+    "finito": "2026-10-03T05:41:01.456Z"
   }
 ]
