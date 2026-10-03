@@ -131,7 +131,7 @@ ${l.compito}
 I SOLDI
 - Per ragionare e lavorare (token e ricerche in rete) hai fino a ${euro(token)}. Quando finiscono ti fermi dove sei: salva spesso.
 - ${sportello ? (servizi > 0 ? `Allo sportello hai fino a ${euro(servizi)}: ${attivi().join(', ')}. Ogni chiamata ha un prezzo${l.omaggio ? '' : ' e lo paghi tu'}.` : `Allo sportello hai solo quello che non costa (${attivi().join(', ')}): i servizi a pagamento si sbloccano scrivendo «sportello: X €» nel compito, la prossima volta.`) : 'Lo sportello è chiuso: niente servizi a pagamento.'}
-- ${l.omaggio ? 'Questo lavoro te lo regala Luca: è una prova prima che tu nasca. La tua cassa da 100 € parte al primo risveglio e questo lavoro non la tocca.' : `In cassa adesso hai ${euro(c.cassa)} (stato ${c.stato}).${c.bonus_residuo > 0 ? ` Il bonus della settimana te ne lascia ancora ${euro(c.bonus_residuo)}: le spese di questo lavoro le paga prima lui.` : ''}`}
+- ${l.omaggio ? 'Questo lavoro te lo regala Luca: è una prova prima che tu nasca. La tua cassa da 100 € parte al primo risveglio e questo lavoro non la tocca.' : `In cassa adesso hai ${euro(c.cassa)} (stato ${c.stato}).${c.bonus_residuo > 0 ? ` Il bonus di oggi (lunedì) te ne lascia ancora ${euro(c.bonus_residuo)}: le spese di questo lavoro le paga prima lui.` : ''}`}
 
 GLI ATTREZZI
 - La rete: cercare e leggere pagine.
@@ -261,7 +261,7 @@ async function turnoVero() {
     const c = conti()
     const budget = arrotonda(Math.min(l.budget_eur, resta), 2)
     if (l.omaggio && budget < 0.05) break // il regalo di Luca è finito
-    const base = { tipo: 'lavoro', id: l.id, giorno: giornoDiVita(), omaggio: Boolean(l.omaggio), modello: config.notte.modello }
+    const base = { tipo: 'lavoro', id: l.id, giorno: giornoDiVita(), omaggio: Boolean(l.omaggio), modello: config.notte.modello, iniziato: adesso().toISOString() }
     const nonCominciato = (riassunto) => scriviEsito({ ...base, stato: 'non_riuscito', riassunto, file: [], costo_token_eur: 0, sportello: [], costo_eur: 0 })
     if (!l.omaggio && !puoPagare('lavoro', budget + costiInSospeso())) {
       nonCominciato(`In cassa non c'erano i ${euro(budget)} del budget: non l'ho cominciato.`)

@@ -28,13 +28,15 @@ export const inSospeso = () => {
 // Quanto è già stato speso sul Mac ma non è ancora nel libro dei conti: chi controlla la cassa lo toglie.
 export const costiInSospeso = () => inSospeso().filter((e) => !e.omaggio).reduce((t, e) => t + (e.costo_eur ?? 0), 0)
 
+// I costi valgono dal momento in cui il lavoro è partito (per il bonus del lunedì, per esempio).
 function registraLavoro(e) {
+  const quando = new Date(e.iniziato ?? e.quando)
   if (e.costo_token_eur > 0 && !giaRegistrato(`lavoro ${e.id}`))
-    registraCosto({ categoria: 'lavoro', importo_eur: e.costo_token_eur, descrizione: `Lavoro ${e.id}: token (${e.modello})${e.stima ? ', registrato il massimo: si è interrotto senza resoconto' : ''}`, rif: `lavoro ${e.id}`, giaSostenuto: true })
+    registraCosto({ categoria: 'lavoro', importo_eur: e.costo_token_eur, descrizione: `Lavoro ${e.id}: token (${e.modello})${e.stima ? ', registrato il massimo: si è interrotto senza resoconto' : ''}`, rif: `lavoro ${e.id}`, giaSostenuto: true, quando })
   const chiamate = e.sportello ?? []
   const servizi = chiamate.reduce((t, x) => t + x.costo_eur, 0)
   if (servizi > 0 && !giaRegistrato(`lavoro ${e.id} sportello`))
-    registraCosto({ categoria: 'servizi', importo_eur: servizi, descrizione: `Lavoro ${e.id}: sportello (${[...new Set(chiamate.map((x) => x.servizio))].join(', ')}, ${chiamate.length} chiamate)`, rif: `lavoro ${e.id} sportello`, giaSostenuto: true })
+    registraCosto({ categoria: 'servizi', importo_eur: servizi, descrizione: `Lavoro ${e.id}: sportello (${[...new Set(chiamate.map((x) => x.servizio))].join(', ')}, ${chiamate.length} chiamate)`, rif: `lavoro ${e.id} sportello`, giaSostenuto: true, quando })
 }
 
 // Su GitHub, a ogni controllo: applica gli esiti nuovi. Restituisce quanti erano.
@@ -56,7 +58,7 @@ export function applicaEsiti() {
       if (e.da_ricordare) ricorda(`Giorno ${e.giorno}, dal lavoro ${e.id}: ${e.da_ricordare}`)
     } else if (e.tipo === 'conversazione') {
       if (e.costo_eur > 0 && !giaRegistrato(`conversazione ${e.id}`))
-        registraCosto({ categoria: 'conversazione', importo_eur: e.costo_eur, descrizione: e.descrizione, rif: `conversazione ${e.id}`, giaSostenuto: true })
+        registraCosto({ categoria: 'conversazione', importo_eur: e.costo_eur, descrizione: e.descrizione, rif: `conversazione ${e.id}`, giaSostenuto: true, quando: new Date(e.id) })
       if (e.nummo && !giaDette.has(e.id)) aggiungiJsonl('conversazioni.jsonl', { quando: e.id, giorno: e.giorno, data: e.data, luca: e.luca, nummo: e.nummo, costo_eur: e.costo_eur, modello: e.modello })
       if (e.da_ricordare) ricorda(`Giorno ${e.giorno}, da una chiacchierata con Luca: ${e.da_ricordare}`)
     } else if (e.tipo === 'notizia') {

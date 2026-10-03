@@ -182,20 +182,24 @@ test('gli esiti del Mac entrano nei conti una volta sola', async () => {
   assert.ok(verificaCatena().ok ?? verificaCatena())
 })
 
-test('il bonus della settimana paga prima della cassa, non copre respiro e affitto, si azzera il lunedì', () => {
+test('il bonus del lunedì paga prima della cassa, solo il lunedì, non copre respiro e affitto', () => {
   config.bonus = BONUS
   const prima = process.env.NUMMO_ADESSO
   try {
-    process.env.NUMMO_ADESSO = '2026-10-06T09:00:00Z' // martedì della prima settimana
+    process.env.NUMMO_ADESSO = '2026-10-06T09:00:00Z' // martedì: niente bonus
+    assert.equal(bonusResiduo('lavoro'), 0)
+    process.env.NUMMO_ADESSO = '2026-10-12T09:00:00Z' // lunedì
     const cassa = conti().cassa
     assert.equal(bonusResiduo('lavoro'), 15)
     assert.deepEqual(registraCosto({ categoria: 'lavoro', importo_eur: 4, descrizione: 'prova', rif: 'b1' }).map((v) => v.pagato_da), ['bonus'])
     assert.deepEqual(registraCosto({ categoria: 'servizi', importo_eur: 12, descrizione: 'prova', rif: 'b2' }).map((v) => [v.pagato_da, -v.importo_eur]), [['bonus', 11], ['nummo', 1]])
     assert.equal(bonusResiduo('lavoro'), 0)
-    assert.equal(bonusResiduo('affitto'), 0)
     assert.ok(registraCosto({ categoria: 'affitto', importo_eur: 1, descrizione: 'prova', rif: 'b3' }).every((v) => v.pagato_da === 'nummo'))
     assert.equal(Math.round((cassa - conti().cassa) * 100), 200) // dalla cassa escono solo 1 € di servizi e 1 € di affitto
-    process.env.NUMMO_ADESSO = '2026-10-12T08:00:00Z' // lunedì dopo: si riparte da 15
+    // Un lavoro partito lunedì e registrato martedì resta del lunedì (che qui è già esaurito).
+    process.env.NUMMO_ADESSO = '2026-10-13T00:30:00Z'
+    assert.deepEqual(registraCosto({ categoria: 'lavoro', importo_eur: 1, descrizione: 'prova', rif: 'b4', quando: new Date('2026-10-12T21:00:00Z') }).map((v) => v.pagato_da), ['nummo'])
+    process.env.NUMMO_ADESSO = '2026-10-19T08:00:00Z' // lunedì dopo: si riparte da 15
     assert.equal(bonusResiduo('lavoro'), 15)
     assert.ok(verificaCatena())
   } finally {

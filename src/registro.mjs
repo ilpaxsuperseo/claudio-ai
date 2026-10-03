@@ -68,30 +68,28 @@ export function sostegnoResiduo(categoria, tutte = voci()) {
   return Math.max(0, micro(sv.tetto_mensile_eur) - usatoMicro) / 1e6
 }
 
-// Il lunedì (in Italia) della settimana di un istante: «2026-10-05».
-function lunediDi(istante) {
-  const giorno = new Date(`${dataLocale(istante)}T12:00:00Z`)
-  return new Date(giorno.getTime() - ((giorno.getUTCDay() + 6) % 7) * 86400000).toISOString().slice(0, 10)
-}
+// Il giorno della settimana in Italia (0 = domenica, 1 = lunedì).
+const giornoSettimana = (istante) => new Date(`${dataLocale(istante)}T12:00:00Z`).getUTCDay()
 
-// Il bonus della settimana (regalo di Luca, config → bonus): dal lunedì indicato, ogni settimana una cifra da
-// spendere entro domenica, per le spese di Nummo tranne quelle escluse (il respiro, l'affitto, le commissioni).
-// Quello che non spende si perde il lunedì dopo. Non entra in cassa: serve a provare, non ad allungare la vita.
-export function bonusResiduo(categoria, tutte = voci()) {
+// Il bonus del lunedì (regalo di Luca, config → bonus): ogni lunedì, dal giorno indicato, una cifra da spendere
+// entro la mezzanotte, per le spese di Nummo tranne quelle escluse (il respiro, l'affitto, le commissioni).
+// Quello che non spende si perde. Non entra in cassa: serve a provare, non ad allungare la vita.
+// «quando» è il momento della spesa: un lavoro finito dopo mezzanotte resta del lunedì in cui è partito.
+export function bonusResiduo(categoria, tutte = voci(), quando = adesso()) {
   const b = config.bonus
   if (!b || pagatoDaLuca(categoria) || (b.non_copre ?? []).includes(categoria)) return 0
-  const lunedi = lunediDi(adesso())
-  if (lunedi < b.dal) return 0
+  const giorno = dataLocale(quando)
+  if (giornoSettimana(quando) !== 1 || giorno < b.dal) return 0
   const usatoMicro = tutte
-    .filter((v) => v.pagato_da === 'bonus' && lunediDi(new Date(v.quando)) === lunedi)
+    .filter((v) => v.pagato_da === 'bonus' && (v.bonus_del ?? dataLocale(new Date(v.quando))) === giorno)
     .reduce((s, v) => s - micro(v.importo_eur), 0)
-  return Math.max(0, micro(b.euro_a_settimana) - usatoMicro) / 1e6
+  return Math.max(0, micro(b.euro_al_lunedi) - usatoMicro) / 1e6
 }
 
 // Quanto di un costo coprono, nell'ordine, il sostegno e il bonus (in milionesimi).
-function coperture(categoria, costo, tutte) {
+function coperture(categoria, costo, tutte, quando) {
   const sostegno = Math.min(costo, micro(sostegnoResiduo(categoria, tutte)))
-  const bonus = Math.min(costo - sostegno, micro(bonusResiduo(categoria, tutte)))
+  const bonus = Math.min(costo - sostegno, micro(bonusResiduo(categoria, tutte, quando)))
   return { sostegno, bonus, resto: costo - sostegno - bonus }
 }
 
@@ -105,15 +103,15 @@ export function puoPagare(categoria, importo_eur, tutte = voci()) {
 // poi il bonus della settimana, e il resto Nummo. Le parti si controllano insieme prima di scrivere qualsiasi riga.
 // "giaSostenuto": il servizio è già stato consumato (una chiamata al modello fatta): si registra
 // comunque, perché nascondere una spesa è peggio che andare sotto zero.
-export function registraCosto({ categoria, importo_eur, descrizione, rif, giaSostenuto = false }) {
+export function registraCosto({ categoria, importo_eur, descrizione, rif, giaSostenuto = false, quando = adesso() }) {
   if (pagatoDaLuca(categoria)) return [scrivi({ tipo: 'costo', categoria, importo_eur: -Math.abs(importo_eur), pagato_da: 'luca', descrizione, rif })]
   const tutte = voci()
-  const { sostegno: coperto, bonus, resto } = coperture(categoria, micro(Math.abs(importo_eur)), tutte)
+  const { sostegno: coperto, bonus, resto } = coperture(categoria, micro(Math.abs(importo_eur)), tutte, quando)
   if (resto > cassaMicro(tutte) && !giaSostenuto)
     throw Object.assign(new Error(`Spesa rifiutata: servono ${(resto / 1e6).toFixed(4)} €, in cassa ce ne sono ${(cassaMicro(tutte) / 1e6).toFixed(4)}`), { senzaSoldi: true })
   const scritte = []
   if (coperto > 0) scritte.push(scrivi({ tipo: 'costo', categoria, importo_eur: -coperto / 1e6, pagato_da: 'sostegno_vitale', descrizione, rif }))
-  if (bonus > 0) scritte.push(scrivi({ tipo: 'costo', categoria, importo_eur: -bonus / 1e6, pagato_da: 'bonus', descrizione, rif }))
+  if (bonus > 0) scritte.push(scrivi({ tipo: 'costo', categoria, importo_eur: -bonus / 1e6, pagato_da: 'bonus', bonus_del: dataLocale(quando), descrizione, rif }))
   if (resto > 0) scritte.push(scrivi({ tipo: 'costo', categoria, importo_eur: -resto / 1e6, pagato_da: 'nummo', descrizione, rif }))
   return scritte
 }

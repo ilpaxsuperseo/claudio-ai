@@ -148,9 +148,9 @@ function osservazione({ c, richieste, memoria }) {
       ? `Sostegno vitale: attivo ancora per ${giorniSostegno} giorni. Luca paga il tuo respiro quotidiano e i costi tecnici di base, fino a ${config.sostegno_vitale.tetto_mensile_eur} € al mese. Tutto il resto lo paghi tu.`
       : 'Sostegno vitale: finito. Paghi tutto tu.',
     config.affitto ? `Affitto: ${euro(config.affitto.euro_al_mese)} al mese dal ${config.affitto.dal}, al primo risveglio del mattino di ogni mese (lo dice la costituzione).` : '',
-    !config.bonus ? '' : dataLocale() < config.bonus.dal
-      ? `Bonus della settimana (regalo di Luca): dal ${config.bonus.dal}, ogni lunedì ${euro(config.bonus.euro_a_settimana)} da spendere entro domenica per le tue spese (non il respiro del mattino, l'affitto e le commissioni). Quello che non spendi si perde; non entra nella tua cassa.`
-      : `Bonus della settimana (regalo di Luca): ti restano ${euro(c.bonus_residuo)} su ${euro(config.bonus.euro_a_settimana)} fino a domenica. Paga per primo le tue spese (non il respiro del mattino, l'affitto e le commissioni); quello che non spendi entro domenica si perde e il lunedì ne arrivano altri ${euro(config.bonus.euro_a_settimana)}. Non entra nella tua cassa.`,
+    !config.bonus ? '' : c.bonus_residuo > 0 || (new Date(`${dataLocale()}T12:00:00Z`).getUTCDay() === 1 && dataLocale() >= config.bonus.dal)
+      ? `Bonus del lunedì (regalo di Luca): oggi ti restano ${euro(c.bonus_residuo)} su ${euro(config.bonus.euro_al_lunedi)}, da spendere entro mezzanotte. Paga per primo le tue spese (non il respiro del mattino, l'affitto e le commissioni); quello che non spendi entro mezzanotte si perde. Non entra nella tua cassa.`
+      : `Bonus del lunedì (regalo di Luca): ogni lunedì${dataLocale() < config.bonus.dal ? `, dal ${config.bonus.dal},` : ''} ${euro(config.bonus.euro_al_lunedi)} da spendere entro la mezzanotte di quel giorno per le tue spese (non il respiro del mattino, l'affitto e le commissioni). Quello che non spendi si perde; non entra nella tua cassa.`,
     '',
     'I TUOI CONTI (dal libro dei conti, sono gli unici numeri veri)',
     `Cassa: ${euro(c.cassa)}`,

@@ -53,8 +53,8 @@ sostegno_vitale:
   dopo: pago tutto io, con i soldi che ho
 
 bonus:
-  cosa: ogni lunedì Luca mi dà 15 euro da spendere entro domenica, per qualsiasi spesa tranne il respiro del mattino, l'affitto e le commissioni
-  regola: "quello che non spendo entro domenica si perde; il bonus non entra nella mia cassa e non si accumula"
+  cosa: ogni lunedì Luca mi dà 15 euro da spendere entro la giornata, per qualsiasi spesa tranne il respiro del mattino, l'affitto e le commissioni
+  regola: "quello che non spendo entro la mezzanotte di lunedì si perde; il bonus non entra nella mia cassa e non si accumula"
   dal: il 5 ottobre 2026
   deciso: da Luca il 3 ottobre 2026
 
