@@ -131,7 +131,7 @@ ${l.compito}
 I SOLDI
 - Per ragionare e lavorare (token e ricerche in rete) hai fino a ${euro(token)}. Quando finiscono ti fermi dove sei: salva spesso.
 - ${sportello ? (servizi > 0 ? `Allo sportello hai fino a ${euro(servizi)}: ${attivi().join(', ')}. Ogni chiamata ha un prezzo${l.omaggio ? '' : ' e lo paghi tu'}.` : `Allo sportello hai solo quello che non costa (${attivi().join(', ')}): i servizi a pagamento si sbloccano scrivendo «sportello: X €» nel compito, la prossima volta.`) : 'Lo sportello è chiuso: niente servizi a pagamento.'}
-- ${l.omaggio ? 'Questo lavoro te lo regala Luca: è una prova prima che tu nasca. La tua cassa da 100 € parte al primo risveglio e questo lavoro non la tocca.' : `In cassa adesso hai ${euro(c.cassa)} (stato ${c.stato}).`}
+- ${l.omaggio ? 'Questo lavoro te lo regala Luca: è una prova prima che tu nasca. La tua cassa da 100 € parte al primo risveglio e questo lavoro non la tocca.' : `In cassa adesso hai ${euro(c.cassa)} (stato ${c.stato}).${c.bonus_residuo > 0 ? ` Il bonus della settimana te ne lascia ancora ${euro(c.bonus_residuo)}: le spese di questo lavoro le paga prima lui.` : ''}`}
 
 GLI ATTREZZI
 - La rete: cercare e leggere pagine.

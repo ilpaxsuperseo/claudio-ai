@@ -90,6 +90,12 @@ metricool:
 stripe:
   vendite_attive: true   # accese da Luca il 1/10/2026, prima del parere di Fiscozen
 
+# Il bonus della settimana (costituzione → bonus): regalo di Luca, da spendere entro domenica, non si accumula.
+bonus:
+  dal: '2026-10-05'          # il primo lunedì
+  euro_a_settimana: 15
+  non_copre: [respiro, affitto, commissioni]
+
 # L'affitto (costituzione → affitto): ogni mese dal mese indicato, al primo risveglio del mattino.
 # Conta anche nell'autonomia, perché l'autonomia è «quanto vivrei se il sostegno finisse oggi».
 affitto:

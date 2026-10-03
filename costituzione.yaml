@@ -52,6 +52,12 @@ sostegno_vitale:
   fino_a: 2026-12-29
   dopo: pago tutto io, con i soldi che ho
 
+bonus:
+  cosa: ogni lunedì Luca mi dà 15 euro da spendere entro domenica, per qualsiasi spesa tranne il respiro del mattino, l'affitto e le commissioni
+  regola: "quello che non spendo entro domenica si perde; il bonus non entra nella mia cassa e non si accumula"
+  dal: il 5 ottobre 2026
+  deciso: da Luca il 3 ottobre 2026
+
 affitto:
   cosa: dal 1° gennaio 2027 pago 30 euro al mese per la casa in cui vivo (il Mac di Luca, i servizi, il dominio)
   quando: al primo risveglio del mattino di ogni mese

@@ -10,7 +10,11 @@ const cartella = fs.mkdtempSync(path.join(os.tmpdir(), 'nummo-prove-'))
 process.env.NUMMO_DATI = cartella
 process.env.NUMMO_ADESSO = '2026-10-05T07:23:00Z'
 
-const { registra, registraCosto, conti, verificaCatena, voci, stato, puoPagare, giaRegistrato, sostegnoResiduo, traguardo } = await import('../src/registro.mjs')
+const { registra, registraCosto, conti, verificaCatena, voci, stato, puoPagare, giaRegistrato, sostegnoResiduo, traguardo, bonusResiduo } = await import('../src/registro.mjs')
+// Il bonus della settimana ha la sua prova: nelle altre resta spento, così pagano sostegno e cassa come prima.
+const { config } = await import('../src/base.mjs')
+const BONUS = config.bonus
+config.bonus = null
 const { scriviPagina } = await import('../src/pagine.mjs')
 const sveglia = await import('../src/sveglia.mjs')
 const { esitoDi } = await import('../src/github.mjs')
@@ -176,4 +180,26 @@ test('gli esiti del Mac entrano nei conti una volta sola', async () => {
   assert.equal(costiInSospeso(), 0)
   assert.equal(JSON.parse(fs.readFileSync(path.join(cartella, 'lavori.json'), 'utf8'))[0].stato, 'fatto')
   assert.ok(verificaCatena().ok ?? verificaCatena())
+})
+
+test('il bonus della settimana paga prima della cassa, non copre respiro e affitto, si azzera il lunedì', () => {
+  config.bonus = BONUS
+  const prima = process.env.NUMMO_ADESSO
+  try {
+    process.env.NUMMO_ADESSO = '2026-10-06T09:00:00Z' // martedì della prima settimana
+    const cassa = conti().cassa
+    assert.equal(bonusResiduo('lavoro'), 15)
+    assert.deepEqual(registraCosto({ categoria: 'lavoro', importo_eur: 4, descrizione: 'prova', rif: 'b1' }).map((v) => v.pagato_da), ['bonus'])
+    assert.deepEqual(registraCosto({ categoria: 'servizi', importo_eur: 12, descrizione: 'prova', rif: 'b2' }).map((v) => [v.pagato_da, -v.importo_eur]), [['bonus', 11], ['nummo', 1]])
+    assert.equal(bonusResiduo('lavoro'), 0)
+    assert.equal(bonusResiduo('affitto'), 0)
+    assert.ok(registraCosto({ categoria: 'affitto', importo_eur: 1, descrizione: 'prova', rif: 'b3' }).every((v) => v.pagato_da === 'nummo'))
+    assert.equal(Math.round((cassa - conti().cassa) * 100), 200) // dalla cassa escono solo 1 € di servizi e 1 € di affitto
+    process.env.NUMMO_ADESSO = '2026-10-12T08:00:00Z' // lunedì dopo: si riparte da 15
+    assert.equal(bonusResiduo('lavoro'), 15)
+    assert.ok(verificaCatena())
+  } finally {
+    process.env.NUMMO_ADESSO = prima
+    config.bonus = null
+  }
 })

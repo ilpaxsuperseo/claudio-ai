@@ -22,8 +22,8 @@ export const TIPI = {
 // (conversazione) le paga Nummo.
 export const PENSIERO = ['respiro', 'respiro_extra', 'cervello', 'conversazione']
 
-// Chi paga al posto di Nummo: il sostegno vitale (90 giorni) e Luca (il diario, sempre).
-const DI_LUCA = ['sostegno_vitale', 'luca']
+// Chi paga al posto di Nummo: il sostegno vitale (90 giorni), il bonus della settimana e Luca (il diario, sempre).
+const DI_LUCA = ['sostegno_vitale', 'bonus', 'luca']
 const pagatoDaLuca = (categoria) => (config.pagati_da_luca ?? []).includes(categoria)
 
 const impronta = (voce) => crypto.createHash('sha256').update(JSON.stringify(voce)).digest('hex')
@@ -68,28 +68,52 @@ export function sostegnoResiduo(categoria, tutte = voci()) {
   return Math.max(0, micro(sv.tetto_mensile_eur) - usatoMicro) / 1e6
 }
 
-// Si può pagare questa cifra, fra sostegno residuo e cassa? Da chiedere PRIMA di spendere.
-export function puoPagare(categoria, importo_eur, tutte = voci()) {
-  if (pagatoDaLuca(categoria)) return true
-  const costo = micro(Math.abs(importo_eur))
-  const coperto = Math.min(costo, micro(sostegnoResiduo(categoria, tutte)))
-  return costo - coperto <= cassaMicro(tutte)
+// Il lunedì (in Italia) della settimana di un istante: «2026-10-05».
+function lunediDi(istante) {
+  const giorno = new Date(`${dataLocale(istante)}T12:00:00Z`)
+  return new Date(giorno.getTime() - ((giorno.getUTCDay() + 6) % 7) * 86400000).toISOString().slice(0, 10)
 }
 
-// Un costo lo paga il sostegno vitale se la categoria è coperta e il tetto del mese non è superato;
-// il resto lo paga Nummo. Le due parti si controllano insieme prima di scrivere qualsiasi riga.
+// Il bonus della settimana (regalo di Luca, config → bonus): dal lunedì indicato, ogni settimana una cifra da
+// spendere entro domenica, per le spese di Nummo tranne quelle escluse (il respiro, l'affitto, le commissioni).
+// Quello che non spende si perde il lunedì dopo. Non entra in cassa: serve a provare, non ad allungare la vita.
+export function bonusResiduo(categoria, tutte = voci()) {
+  const b = config.bonus
+  if (!b || pagatoDaLuca(categoria) || (b.non_copre ?? []).includes(categoria)) return 0
+  const lunedi = lunediDi(adesso())
+  if (lunedi < b.dal) return 0
+  const usatoMicro = tutte
+    .filter((v) => v.pagato_da === 'bonus' && lunediDi(new Date(v.quando)) === lunedi)
+    .reduce((s, v) => s - micro(v.importo_eur), 0)
+  return Math.max(0, micro(b.euro_a_settimana) - usatoMicro) / 1e6
+}
+
+// Quanto di un costo coprono, nell'ordine, il sostegno e il bonus (in milionesimi).
+function coperture(categoria, costo, tutte) {
+  const sostegno = Math.min(costo, micro(sostegnoResiduo(categoria, tutte)))
+  const bonus = Math.min(costo - sostegno, micro(bonusResiduo(categoria, tutte)))
+  return { sostegno, bonus, resto: costo - sostegno - bonus }
+}
+
+// Si può pagare questa cifra, fra sostegno, bonus e cassa? Da chiedere PRIMA di spendere.
+export function puoPagare(categoria, importo_eur, tutte = voci()) {
+  if (pagatoDaLuca(categoria)) return true
+  return coperture(categoria, micro(Math.abs(importo_eur)), tutte).resto <= cassaMicro(tutte)
+}
+
+// Un costo lo paga il sostegno vitale se la categoria è coperta e il tetto del mese non è superato,
+// poi il bonus della settimana, e il resto Nummo. Le parti si controllano insieme prima di scrivere qualsiasi riga.
 // "giaSostenuto": il servizio è già stato consumato (una chiamata al modello fatta): si registra
 // comunque, perché nascondere una spesa è peggio che andare sotto zero.
 export function registraCosto({ categoria, importo_eur, descrizione, rif, giaSostenuto = false }) {
   if (pagatoDaLuca(categoria)) return [scrivi({ tipo: 'costo', categoria, importo_eur: -Math.abs(importo_eur), pagato_da: 'luca', descrizione, rif })]
   const tutte = voci()
-  const costo = micro(Math.abs(importo_eur))
-  const coperto = Math.min(costo, micro(sostegnoResiduo(categoria, tutte)))
-  const resto = costo - coperto
+  const { sostegno: coperto, bonus, resto } = coperture(categoria, micro(Math.abs(importo_eur)), tutte)
   if (resto > cassaMicro(tutte) && !giaSostenuto)
     throw Object.assign(new Error(`Spesa rifiutata: servono ${(resto / 1e6).toFixed(4)} €, in cassa ce ne sono ${(cassaMicro(tutte) / 1e6).toFixed(4)}`), { senzaSoldi: true })
   const scritte = []
   if (coperto > 0) scritte.push(scrivi({ tipo: 'costo', categoria, importo_eur: -coperto / 1e6, pagato_da: 'sostegno_vitale', descrizione, rif }))
+  if (bonus > 0) scritte.push(scrivi({ tipo: 'costo', categoria, importo_eur: -bonus / 1e6, pagato_da: 'bonus', descrizione, rif }))
   if (resto > 0) scritte.push(scrivi({ tipo: 'costo', categoria, importo_eur: -resto / 1e6, pagato_da: 'nummo', descrizione, rif }))
   return scritte
 }
@@ -124,7 +148,8 @@ export function conti(tutte = voci()) {
   const affittoGiorno = (config.affitto?.euro_al_mese ?? 0) / 30
   // Dominio e costi tecnici (infrastruttura) sono già dentro l'affitto: contarli anche qui li conterebbe due volte,
   // e una spesa una tantum divisa per i primi giorni di vita lo faceva sembrare in fin di vita.
-  const costoGiorno = (mediaGiornaliera(tutte, (v) => !pagatoDaLuca(v.categoria) && !['affitto', 'infrastruttura'].includes(v.categoria), oggi) ?? config.respiro_stimato_eur_giorno) + affittoGiorno
+  // Quello che paga il bonus non esce dalla sua cassa: non accorcia la sua vita.
+  const costoGiorno = (mediaGiornaliera(tutte, (v) => !pagatoDaLuca(v.categoria) && !['affitto', 'infrastruttura'].includes(v.categoria) && v.pagato_da !== 'bonus', oggi) ?? config.respiro_stimato_eur_giorno) + affittoGiorno
   const costoRespiro = mediaGiornaliera(tutte, (v) => v.categoria === 'respiro', oggi) ?? config.respiro_stimato_eur_giorno
   const autonomiaGiorni = costoGiorno > 0 ? cassa / costoGiorno : Infinity
   const morto = tutte.some((v) => v.tipo === 'morte')
@@ -147,6 +172,7 @@ export function conti(tutte = voci()) {
     costo_respiro_medio: arrotonda(costoRespiro, 6),
     autonomia_giorni: Number.isFinite(autonomiaGiorni) ? Math.max(0, Math.floor(autonomiaGiorni)) : null,
     in_sostegno: inSostegno(),
+    bonus_residuo: arrotonda(bonusResiduo('lavoro', tutte)),
     stato: stato({ cassa, autonomiaGiorni, costoRespiro, morto }),
   }
 }

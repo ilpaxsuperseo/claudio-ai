@@ -429,7 +429,7 @@ ${stile(t)}</style>
       ${attesa ? '' : `<div class="tabella" tabindex="0" role="region" aria-label="Le ultime righe del libro dei conti">
         <table>
           <thead><tr><th>Riga</th><th>Giorno</th><th>Cosa</th><th>Chi paga</th><th class="cifre">Euro</th><th>Impronta</th></tr></thead>
-          <tbody>${righeConti.map((v) => `<tr><td>${v.n}</td><td>${v.giorno}</td><td>${TIPO[v.tipo]}${v.descrizione ? `<br><span class="nota">${xml(v.descrizione)}</span>` : ''}</td><td>${v.tipo === 'costo' ? (v.pagato_da === 'sostegno_vitale' ? 'Sostegno' : 'Io') : ''}</td><td class="cifre">${segno(v.importo_eur)}</td><td class="impronta">${v.hash.slice(0, 10)}</td></tr>`).join('')}</tbody>
+          <tbody>${righeConti.map((v) => `<tr><td>${v.n}</td><td>${v.giorno}</td><td>${TIPO[v.tipo]}${v.descrizione ? `<br><span class="nota">${xml(v.descrizione)}</span>` : ''}</td><td>${v.tipo === 'costo' ? ({ sostegno_vitale: 'Sostegno', bonus: 'Bonus', luca: 'Luca' }[v.pagato_da] ?? 'Io') : ''}</td><td class="cifre">${segno(v.importo_eur)}</td><td class="impronta">${v.hash.slice(0, 10)}</td></tr>`).join('')}</tbody>
         </table>
       </div>`}
     </section>

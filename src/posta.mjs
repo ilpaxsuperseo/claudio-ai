@@ -102,4 +102,19 @@ export const rispondi = (uid, testo) =>
     return { dominio: dominio(a) }
   })
 
+// Quanti messaggi può leggere davvero, in tutto e non letti: quelli nascosti non contano (per lui non esistono).
+export const conta = () =>
+  casella(async (c) => {
+    let totali = 0
+    let nonLette = 0
+    if (c.mailbox.exists)
+      for await (const msg of c.fetch('1:*', { uid: true, envelope: true, flags: true })) {
+        const m = sintesi(msg)
+        if (nascosto(m)) continue
+        totali++
+        if (!m.letta) nonLette++
+      }
+    return { totali, non_lette: nonLette }
+  })
+
 export const massimoRisposte = () => config.servizi?.posta?.risposte_per_lavoro ?? 10

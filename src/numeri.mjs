@@ -60,19 +60,14 @@ function righe(risposta) {
 
 const numero = (v) => (v == null || v === '' ? null : Number(v))
 
+// Solo i messaggi che Nummo può leggere: quelli delle piattaforme e con codici restano nascosti e non si contano.
 async function postaNonLetta() {
-  if (!process.env.NUMMO_EMAIL || !process.env.NUMMO_EMAIL_PASSWORD) return null
-  const { ImapFlow } = await import('imapflow')
-  const c = new ImapFlow({ host: process.env.NUMMO_IMAP, port: 993, secure: true, auth: { user: process.env.NUMMO_EMAIL, pass: process.env.NUMMO_EMAIL_PASSWORD }, logger: false })
   try {
-    await c.connect()
-    const s = await c.status('INBOX', { messages: true, unseen: true })
-    return { totali: s.messages, non_lette: s.unseen }
+    const posta = await import('./posta.mjs')
+    return posta.collegata() ? await posta.conta() : null
   } catch (e) {
     console.error(`Posta non letta: ${e.message}`)
     return null
-  } finally {
-    await c.logout().catch(() => {})
   }
 }
 
@@ -133,7 +128,7 @@ export function riassunto(numeri) {
   const { pagine_piu_viste: pagine = [], da_dove_arrivano: fonti = [] } = numeri.sito ?? {}
   if (pagine.length) righe.push(`- Pagine più viste (7 giorni): ${pagine.slice(0, 5).map(([p, v]) => `${p} ${v}`).join(', ')}`)
   if (fonti.length) righe.push(`- Da dove arrivano le visite: ${fonti.slice(0, 5).map(([f, v]) => `${f} ${v}`).join(', ')}`)
-  if (numeri.posta) righe.push(`- Posta ciao@nummo.it: ${numeri.posta.non_lette} email non lette su ${numeri.posta.totali}. Leggerle e rispondere si fa di notte, dallo sportello.`)
+  if (numeri.posta) righe.push(`- Posta ciao@nummo.it: ${numeri.posta.non_lette} email da leggere su ${numeri.posta.totali} che puoi leggere (i messaggi delle piattaforme e quelli con codici o accessi non contano: restano nascosti). Leggerle e rispondere si fa dai lavori nella casa, dallo sportello.`)
   return [intestazione, ...righe]
 }
 
