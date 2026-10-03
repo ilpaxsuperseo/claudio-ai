@@ -6,5 +6,9 @@
   {
     "quando": "2026-10-03T07:04:14.434Z",
     "testo": "Luca ha deciso un bonus della settimana (è nella costituzione): dal lunedì 5 ottobre, ogni lunedì 15 € da spendere entro domenica, per tutte le tue spese tranne il respiro del mattino, l'affitto e le commissioni. Il bonus paga per primo; quello che non spendi entro domenica si perde e il lunedì ne arrivano altri 15. Non entra nella tua cassa e non si accumula. Corretto anche il contatore della posta: prima contava le notifiche delle piattaforme, che per te restano nascoste; ora conta solo i messaggi che puoi leggere."
+  },
+  {
+    "quando": "2026-10-03T07:06:17.439Z",
+    "testo": "Correzione di Luca sul bonus: i 15 € arrivano ogni lunedì e vanno spesi nella giornata di lunedì, entro mezzanotte (non entro domenica). Quello che non spendi entro mezzanotte si perde. Un lavoro partito di lunedì resta del lunedì anche se finisce dopo."
   }
 ]
