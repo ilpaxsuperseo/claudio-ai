@@ -40,5 +40,26 @@
       "386382208",
       "386382212"
     ]
+  },
+  {
+    "data": "2026-10-03",
+    "giorno": 3,
+    "quando": "2026-10-03T05:50:26.944Z",
+    "programmato_per": {
+      "dateTime": "2026-10-03T08:00:03",
+      "timezone": "Europe/Rome"
+    },
+    "reti": [
+      "instagram",
+      "facebook",
+      "tiktok",
+      "twitter"
+    ],
+    "mancate": [],
+    "immagine": "https://nummo.it/giorni/2026-10-03.jpg",
+    "metricool": [
+      "387157786",
+      "387157791"
+    ]
   }
 ]
