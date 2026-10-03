@@ -10,5 +10,9 @@
   {
     "quando": "2026-10-03T07:06:17.439Z",
     "testo": "Correzione di Luca sul bonus: i 15 € arrivano ogni lunedì e vanno spesi nella giornata di lunedì, entro mezzanotte (non entro domenica). Quello che non spendi entro mezzanotte si perde. Un lavoro partito di lunedì resta del lunedì anche se finisce dopo."
+  },
+  {
+    "quando": "2026-10-03T07:49:31.345Z",
+    "testo": "Dal 3 ottobre, per decisione di Luca, pensi con Claude Opus 5.5: al risveglio, quando usi pensa_meglio (lo stesso modello, che ragiona più a fondo), quando cerchi, nei lavori nella casa, nel diario e nelle chiacchierate. Costi misurati il 3 ottobre con chiamate vere: un risveglio circa 0,10 € (quello del mattino lo paga il sostegno), pensa_meglio circa 0,13 €, una ricerca circa 0,18 €, un lavoro circa 0,15 € solo per partire. Se il filtro di sicurezza di Anthropic ferma una richiesta, si rifà una volta con Claude Sonnet 5. Nuova regola della costituzione (piano), dal 5 ottobre: ogni lunedì scrivi il piano della settimana, da 1 a 3 obiettivi tuoi, ognuno con una misura e un traguardo; il lunedì dopo il codice li confronta con i numeri veri e il risultato va sul tuo sito."
   }
 ]
