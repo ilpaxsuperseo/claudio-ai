@@ -207,3 +207,84 @@ test('il bonus del lunedì paga prima della cassa, solo il lunedì, non copre re
     config.bonus = null
   }
 })
+
+test('il piano della settimana: si scrive una volta, il lunedì dopo si confronta coi numeri veri', async () => {
+  const piano = await import('../src/piano.mjs')
+  const prima = process.env.NUMMO_ADESSO
+  try {
+    assert.equal(piano.lunediDi('2026-10-11'), '2026-10-05') // domenica → il suo lunedì
+    assert.equal(piano.lunediDi('2026-10-12'), '2026-10-12')
+    process.env.NUMMO_ADESSO = '2026-10-26T05:23:00Z' // lunedì, nessun piano ancora
+    assert.equal(piano.serveIlPiano(), true)
+    const p = piano.salvaPiano([
+      { obiettivo: 'Cento visite', misura: 'visite_sito', traguardo: 100 },
+      { obiettivo: 'Una mancia', misura: 'pagamenti', traguardo: 1 },
+      { obiettivo: 'Nuovi follower', misura: 'nuovi_follower_tiktok', traguardo: 5 },
+      { obiettivo: 'Una pagina', misura: 'altro', traguardo: 0 },
+    ], 26)
+    assert.equal(p.obiettivi.length, 3) // al massimo tre
+    assert.equal(piano.serveIlPiano(), false)
+    assert.equal(piano.salvaPiano([{ obiettivo: 'Un altro', misura: 'altro', traguardo: 0 }], 26), null) // uno a settimana
+    // La settimana: 60 visite, una mancia, follower TikTok da 10 a 17 (la lettura prima dell'inizio conta come partenza).
+    // Tutti i giorni della settimana: 60 visite (lo zero è un dato); fuori dalla settimana non contano.
+    const visite = { '2026-10-26': 0, '2026-10-27': 20, '2026-10-28': 0, '2026-10-29': 0, '2026-10-30': 0, '2026-10-31': 0, '2026-11-01': 40 }
+    fs.writeFileSync(path.join(cartella, 'numeri.json'), JSON.stringify({ aggiornato: '2026-11-02T01:00:00Z', giorni: {
+      '2026-10-25': { tiktok: { follower: 10 }, sito: { visite: 500 } },
+      ...Object.fromEntries(Object.entries(visite).map(([d, v]) => [d, { sito: { visite: v } }])),
+      '2026-10-27': { tiktok: { follower: 12 }, sito: { visite: 20 } },
+      '2026-11-01': { tiktok: { follower: 17 }, sito: { visite: 40 } },
+      '2026-11-02': { sito: { visite: 900 } },
+    } }))
+    process.env.NUMMO_ADESSO = '2026-10-28T10:00:00Z'
+    registra({ tipo: 'sostegno_pubblico', importo_eur: 3, descrizione: 'mancia di prova' })
+    registra({ tipo: 'iniezione', importo_eur: 50, descrizione: 'soldi di Luca: non contano' })
+    process.env.NUMMO_ADESSO = '2026-11-01T20:00:00Z' // domenica: la settimana non è finita
+    assert.deepEqual(piano.verificaPiani(), [])
+    process.env.NUMMO_ADESSO = '2026-11-02T05:23:00Z' // lunedì dopo
+    // Pagata domenica sera, registrata lunedì mattina: conta nella settimana in cui è stata pagata.
+    registra({ tipo: 'sostegno_pubblico', importo_eur: 2, descrizione: 'mancia della domenica', pagato_il: '2026-11-01T21:00:00Z' })
+    const [v] = piano.verificaPiani()
+    assert.deepEqual(v.verifica.risultati.map((r) => [r.misura, r.valore, r.raggiunto]), [
+      ['visite_sito', 60, false], ['pagamenti', 2, true], ['nuovi_follower_tiktok', 7, true],
+    ])
+    assert.deepEqual(piano.verificaPiani(), []) // una volta sola
+    assert.equal(piano.riassuntoVerifica(v), '2 obiettivi raggiunti su 3 misurati')
+    assert.equal(piano.serveIlPiano(), true) // nuova settimana, nuovo piano
+    assert.ok(piano.righe().some((r) => r.includes('«Cento visite» (visite_sito): 60 su 100, non raggiunto')))
+  } finally {
+    process.env.NUMMO_ADESSO = prima
+  }
+})
+
+test('la verifica del piano aspetta i dati completi, al massimo tre giorni; i follower senza base non si inventano', async () => {
+  const piano = await import('../src/piano.mjs')
+  const prima = process.env.NUMMO_ADESSO
+  try {
+    process.env.NUMMO_ADESSO = '2026-11-09T05:23:00Z' // lunedì
+    piano.salvaPiano([
+      { obiettivo: 'Follower X', misura: 'nuovi_follower_x', traguardo: 1 },
+      { obiettivo: 'Follower Facebook', misura: 'nuovi_follower_facebook', traguardo: 1 },
+      { obiettivo: 'Follower Instagram', misura: 'nuovi_follower_instagram', traguardo: 1 },
+    ], 40)
+    // Metricool letto sabato: la domenica manca. X ha il totale solo a metà settimana, Facebook solo i nuovi del giorno.
+    fs.writeFileSync(path.join(cartella, 'numeri.json'), JSON.stringify({ aggiornato: '2026-11-14T01:00:00Z', giorni: {
+      '2026-11-11': { x: { follower: 4 }, facebook: { nuovi_follower: 2 } },
+      '2026-11-15': { facebook: { nuovi_follower: 1 } },
+    } }))
+    process.env.NUMMO_ADESSO = '2026-11-16T05:23:00Z' // lunedì dopo: numeri vecchi → aspetta
+    assert.deepEqual(piano.verificaPiani(), [])
+    assert.ok(piano.righe().some((r) => r.includes('la verifica aspetta i numeri completi')))
+    process.env.NUMMO_ADESSO = '2026-11-17T05:23:00Z' // numeri ancora vecchi e Stripe non letto → aspetta ancora
+    assert.deepEqual(piano.verificaPiani({ incassiLetti: false }), [])
+    process.env.NUMMO_ADESSO = '2026-11-19T05:23:00Z' // passati tre giorni dalla domenica: si verifica e si dice cosa mancava
+    const [v] = piano.verificaPiani({ incassiLetti: false }) // Stripe non conta: nessun obiettivo in euro
+    assert.deepEqual(v.verifica.dati_incompleti, ['i numeri di Metricool (nuovi_follower_x, nuovi_follower_facebook, nuovi_follower_instagram)'])
+    // Facebook ha solo due giorni su sette, ma 3 bastano già per il traguardo di 1: raggiunto lo stesso.
+    assert.deepEqual(v.verifica.risultati.map((r) => [r.misura, r.valore, r.raggiunto]), [
+      ['nuovi_follower_x', null, null], ['nuovi_follower_facebook', 3, true], ['nuovi_follower_instagram', null, null],
+    ])
+    assert.match(piano.riassuntoVerifica(v), /dati incompleti: mancavano i numeri di Metricool/)
+  } finally {
+    process.env.NUMMO_ADESSO = prima
+  }
+})

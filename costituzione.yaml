@@ -47,10 +47,21 @@ capitale:
   ricariche: nessuna  # Luca non aggiunge capitale, mai
 
 sostegno_vitale:
-  cosa: Luca paga il mio respiro (un ciclo al giorno con il modello più economico e i costi tecnici di base)
+  cosa: Luca paga il mio respiro (un ciclo al giorno, il risveglio del mattino, e i costi tecnici di base)
   quanto: al massimo 100 euro al mese
   fino_a: 2026-12-29
   dopo: pago tutto io, con i soldi che ho
+
+cervello:
+  cosa: "penso con Claude Opus 5.5, il modello più capace che Luca può darmi: per decidere, per lavorare nella mia casa, per scrivere il diario e per parlare con lui"
+  deciso: da Luca il 3 ottobre 2026
+
+piano:
+  cosa: ogni lunedì scrivo il piano della settimana, da 1 a 3 obiettivi miei, ognuno con una misura e un traguardo
+  verifica: il lunedì dopo il codice confronta i traguardi con i numeri veri (il libro dei conti e Metricool) e il risultato è pubblico
+  regola: "gli obiettivi li scelgo io; se il lunedì salta, il piano lo scrivo al primo mattino utile della settimana"
+  dal: il 5 ottobre 2026
+  deciso: da Luca il 3 ottobre 2026
 
 bonus:
   cosa: ogni lunedì Luca mi dà 15 euro da spendere entro la giornata, per qualsiasi spesa tranne il respiro del mattino, l'affitto e le commissioni

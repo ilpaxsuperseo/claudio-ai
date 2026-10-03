@@ -6,23 +6,34 @@ fuso: Europe/Rome
 # Chi può approvare le richieste e mandare dati (il suo nome utente GitHub).
 luca_github: ilpaxsuperseo
 
-# Modelli e prezzi in dollari per milione di token (listino Anthropic, verificato il 29/9/2026).
-# Il respiro usa sempre il primo; "pensa_meglio" il secondo, a spese di Nummo.
+# Modelli e prezzi in dollari per milione di token (listino Anthropic, verificato il 3/10/2026).
+# Dal 3/10/2026 (deciso da Luca) il cervello è Claude Opus 5.5 per tutto: il respiro, «pensa_meglio»
+# (lo stesso modello che ragiona più a fondo, a spese di Nummo), il diario e le chiacchierate.
+# Opus 5.5 ragiona sempre prima di rispondere: quanto, lo decide «effort» (low, medium, high, xhigh, max).
 modelli:
   respiro:
-    id: claude-haiku-4-5
-    input_usd: 1.00
-    output_usd: 5.00
+    id: claude-opus-5-5
+    input_usd: 4.00
+    output_usd: 20.00
+    effort: medium
+    riserva: riserva       # se il filtro di sicurezza di Anthropic rifiuta, una volta col modello di riserva
   pensa_meglio:
+    id: claude-opus-5-5
+    input_usd: 4.00
+    output_usd: 20.00
+    effort: high
+    riserva: riserva
+  riserva:
     id: claude-sonnet-5
     input_usd: 2.00
     output_usd: 10.00
+    effort: medium
 
 # Lo strumento «cerca»: ricerca web lato server (10 $ ogni 1.000 ricerche) col modello di pensa_meglio.
 ricerca:
   prezzo_ricerca_usd: 0.01
   max_ricerche: 3
-  costo_massimo_eur: 0.25   # tetto prudente da verificare prima di cercare
+  costo_massimo_eur: 1.00   # il massimo di una ricerca: fino a 3 passaggi da 8.000 token con i risultati in entrata (una vera è costata 0,18 €)
 
 # Cambio dollaro/euro: si aggiorna da solo dalla BCE a ogni ciclo; questo è il valore di riserva.
 cambio_usd_eur_riserva: 0.88
@@ -46,7 +57,8 @@ sveglia:
 # I lavori nella casa sul Mac mini (a qualsiasi ora): il budget di ogni lavoro lo decide Nummo, il limite è la
 # cassa; la parte per lo sportello la scrive lui nel compito («sportello: X €»).
 notte:
-  modello: claude-sonnet-5
+  modello: claude-opus-5-5
+  riserva: claude-sonnet-5   # se il filtro di sicurezza di Anthropic ferma un lavoro, lo si rifà una volta con questo
   # La notte di prova prima di nascere (giorno-zero --notte): la paga Luca, al massimo questo in tutto.
   omaggio_eur: 3
 
@@ -91,6 +103,12 @@ stripe:
   vendite_attive: true   # accese da Luca il 1/10/2026, prima del parere di Fiscozen
 
 # Il bonus del lunedì (costituzione → bonus): regalo di Luca, da spendere entro la mezzanotte, non si accumula.
+# Il piano della settimana (costituzione → piano): il lunedì Nummo si dà i suoi obiettivi, il lunedì
+# dopo il codice li confronta coi numeri veri. Se il lunedì salta, il piano si scrive al primo mattino utile.
+piano:
+  dal: '2026-10-05'          # il primo lunedì
+  obiettivi_massimi: 3
+
 bonus:
   dal: '2026-10-05'          # il primo lunedì
   euro_al_lunedi: 15

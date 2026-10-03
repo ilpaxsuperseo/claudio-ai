@@ -63,7 +63,9 @@ export async function incassi() {
     for (const s of elenco.data) {
       if (s.payment_status !== 'paid' || s.currency !== 'eur') continue
       const bt = s.payment_intent?.latest_charge?.balance_transaction
-      nuovi.push({ sessione: s.id, link: p.id, tipo: p.tipo, nome: p.nome, importo_eur: s.amount_total / 100, commissione_eur: bt?.fee != null ? bt.fee / 100 : null, quando: new Date(s.created * 1000).toISOString() })
+      // «pagato_il»: l'addebito riuscito (la sessione può essere stata aperta molto prima di pagare).
+      const pagato = s.payment_intent?.latest_charge?.created ?? s.created
+      nuovi.push({ sessione: s.id, link: p.id, tipo: p.tipo, nome: p.nome, importo_eur: s.amount_total / 100, commissione_eur: bt?.fee != null ? bt.fee / 100 : null, quando: new Date(s.created * 1000).toISOString(), pagato_il: new Date(pagato * 1000).toISOString() })
     }
   }
   return nuovi

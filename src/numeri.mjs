@@ -6,7 +6,7 @@
 // La lettura vera la fa strumenti/numeri.sh con il connettore Metricool di Luca: solo letture, solo il brand Nummo.
 import fs from 'node:fs'
 import path from 'node:path'
-import { RADICE, config, scriviJson, adesso, dataLocale } from './base.mjs'
+import { RADICE, config, scriviJson, leggiJson, adesso, dataLocale } from './base.mjs'
 
 export const RICHIESTE = path.join(RADICE, 'notte', 'numeri-richieste.json')
 export const GREZZI = path.join(RADICE, 'notte', 'numeri-grezzi.jsonl')
@@ -81,10 +81,14 @@ async function raccogli() {
   }
   const di = (etichetta) => righe(risposte.find((r) => r.etichetta === etichetta)?.risposta)
   // Evoluzione: una riga per giorno, con le metriche nell'ordine chiesto e la data (AAAAMMGG) in fondo.
+  // Solo i giorni finiti: quello in corso Metricool lo manda con colonne di zeri che non tornano.
+  // I giorni letti prima restano (la lettura copre una settimana sola): servono al piano della settimana.
+  const oggi = dataLocale()
   const giorni = {}
   for (const riga of di('evoluzione')) {
     const d = String(riga.at(-1))
     const data = `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`
+    if (data >= oggi) continue
     giorni[data] ??= {}
     EVOLUZIONE.forEach((id, i) => {
       const [rete, nome] = Object.entries(METRICHE).map(([r, m]) => [r, m[id]]).find(([, n]) => n)
@@ -98,7 +102,7 @@ async function raccogli() {
   const numeri = {
     aggiornato: adesso().toISOString(),
     letture: risposte.length,
-    giorni: Object.fromEntries(Object.entries(giorni).sort()),
+    giorni: Object.fromEntries(Object.entries({ ...leggiJson('numeri.json', null)?.giorni, ...giorni }).filter(([d]) => d < oggi).sort().slice(-120)),
     sito: { pagine_piu_viste: elenco('pagine'), da_dove_arrivano: elenco('fonti') },
     posta: await postaNonLetta(),
   }
@@ -110,8 +114,9 @@ async function raccogli() {
 export function riassunto(numeri) {
   if (!numeri?.aggiornato) return ['- ancora nessuno: si leggono ogni notte da Metricool']
   const intestazione = `Somme degli ultimi 7 giorni, tra parentesi quelle di ieri. Letti il ${new Date(numeri.aggiornato).toLocaleString('it-IT', { timeZone: config.fuso, dateStyle: 'short', timeStyle: 'short' })}.`
-  const date = Object.keys(numeri.giorni ?? {}).sort()
   const ieri = dataLocale(new Date(Date.parse(numeri.aggiornato) - 86400000))
+  const settimanaFa = dataLocale(new Date(Date.parse(numeri.aggiornato) - 7 * 86400000))
+  const date = Object.keys(numeri.giorni ?? {}).sort().filter((d) => d >= settimanaFa)
   const nomi = { instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', x: 'X', sito: 'Sito nummo.it' }
   const righe = []
   for (const rete of Object.keys(METRICHE)) {

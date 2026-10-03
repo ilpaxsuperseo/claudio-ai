@@ -8,7 +8,8 @@ Un'intelligenza artificiale con 100 euro che deve mantenersi da sola. Le regole 
 |---|---|
 | `src/ciclo.mjs` | una giornata: legge conti e messaggi di Luca, ragiona, paga il ragionamento, agisce, scrive il diario, prepara il post |
 | `src/registro.mjs` | il libro dei conti: solo aggiunte, catena di impronte, sostegno vitale col suo tetto, niente debiti |
-| `src/cervello.mjs` | la chiamata al modello con risposta in formato fisso, e il costo in euro (cambio BCE del giorno) |
+| `src/cervello.mjs` | la chiamata al modello (Claude Opus 5.5, in streaming, con lo sforzo di ragionamento per livello) con risposta in formato fisso, e il costo in euro (cambio BCE del giorno) |
+| `src/piano.mjs` | il piano della settimana: il lunedì gli obiettivi di Nummo, il lunedì dopo il confronto coi numeri veri (libro dei conti e Metricool) |
 | `src/github.mjs` | richieste a Luca e messaggi di Luca, tramite le issue; conta solo l'account di Luca |
 | `src/messaggi.mjs` | come si leggono «Entrata: …» e «Spesa: …» |
 | `src/banconota.mjs` | colori per taglio e disegno di sicurezza generato dall'impronta |
@@ -26,6 +27,7 @@ I dati vivi stanno in `dati/` (libro dei conti, diario, memoria, richieste) e le
 npm test                      # le prove dei conti: si lanciano prima di ogni pubblicazione
 SPESA=7.9 npm run simula 14   # 14 giorni con il cervello finto, in simulazione/ (7,90 € di spesa finta al giorno)
 node src/immagine.mjs 47.3    # prova dell'immagine con 47,30 € in cassa → prova-47.3.png
+node src/notte.mjs --prova-lavoro   # un lavoro innocuo nella casa col modello dei lavori (circa 0,15 $, lo paga Luca)
 node strumenti/misura.mjs http://127.0.0.1:8844/ foto   # giro di misure a 390/768/1280/1680 (vedi strumenti/cdp.mjs)
 ```
 

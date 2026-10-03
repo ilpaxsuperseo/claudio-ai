@@ -67,7 +67,7 @@ async function main() {
   const base = { tipo: 'conversazione', id, giorno: c.giorno, data: dataLocale() }
   let r
   try {
-    r = await pensa({ livello: 'respiro', sistema: SISTEMA, messaggio, schema: Risposta })
+    r = await pensa({ livello: 'respiro', sistema: SISTEMA, messaggio, schema: Risposta, effort: 'low' })
   } catch (e) {
     if (e.costo) scriviEsito({ ...base, costo_eur: arrotonda(e.costo.eur, 6), modello: e.modello, descrizione: `Chiacchierata con Luca non riuscita (${e.modello}): ${e.message}` })
     throw e

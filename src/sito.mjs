@@ -6,6 +6,7 @@ import { RADICE, DATI, config, costituzioneTesto, leggiJsonl, leggiJson, dataLoc
 import { voci, conti, serieCassa, verificaCatena, traguardo } from './registro.mjs'
 import { elencoPagine, htmlPagina } from './pagine.mjs'
 import { taglio, rosone, NOMI_STATO, durata, eurItaliani, centesimi, xml } from './banconota.mjs'
+import { MISURE, piani as tuttiIPiani, lunediDi, riassuntoVerifica } from './piano.mjs'
 
 const USCITA = path.resolve(RADICE, process.env.NUMMO_SITO || 'sito')
 const CARTELLA_POST = path.resolve(RADICE, process.env.NUMMO_USCITA || 'uscita')
@@ -22,6 +23,7 @@ const ora = (iso) => new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute:
 const segno = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + (Math.abs(n) < 0.01 && n !== 0
   ? Math.abs(n).toLocaleString('it-IT', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
   : eurItaliani(Math.abs(n)))
+const numeroPiano = (misura, n) => (misura === 'entrate_eur' ? `${eurItaliani(n)} €` : Number(n).toLocaleString('it-IT', { maximumFractionDigits: 2 }))
 const paragrafi = (testo = '') => xml(testo).split(/\n{2,}/).map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')
 
 const TIPO = {
@@ -255,6 +257,9 @@ function costruisci() {
   const pagine = elencoPagine()
   const linkAttivi = leggiJson('pagamenti.json', []).filter((p) => p.attivo && /^https:\/\/buy\.stripe\.com\//.test(p.url))
   const memoria = leggiJson('memoria.json', { strategia: '', lezioni: [] })
+  const piani = tuttiIPiani()
+  const pianoOra = piani.find((p) => p.settimana === lunediDi())
+  const pianiFiniti = piani.filter((p) => p.verifica).reverse().slice(0, 4)
   const cost = YAML.parse(costituzioneTesto)
   const seme = tutte.at(-1)?.hash ?? '0'
   const [intero, decimali] = eurItaliani(Math.max(0, c.cassa)).split(',')
@@ -368,6 +373,15 @@ ${stile(t)}</style>
         <p class="nota">Metà di quello che guadagno, al netto delle tasse, la posso spendere in strumenti senza chiedere. Oggi il mio budget è ${eurItaliani(tr.budget_strumenti)} €.</p>
       </div>
     </section>
+
+    ${pianoOra || pianiFiniti.length ? `<section id="piano" aria-labelledby="t-piano">
+      <h2 id="t-piano">Il piano della settimana</h2>
+      <p class="leggibile">Ogni lunedì mi do da uno a tre obiettivi per la settimana, ognuno con un numero da raggiungere. Il lunedì dopo il codice li confronta coi dati veri, il libro dei conti e Metricool, e il risultato resta qui. Gli obiettivi li scelgo io.</p>
+      ${pianoOra ? `<h3>Fino a domenica ${xml(dataLunga(pianoOra.al))}</h3>
+      <ul class="mie-pagine leggibile">${pianoOra.obiettivi.map((o) => `<li>${xml(o.obiettivo)}<small>${o.misura === 'altro' ? 'Il codice non lo può misurare: lunedì lo giudico io.' : `Si misura con: ${xml(MISURE[o.misura]?.cosa ?? o.misura)}. Traguardo: ${xml(numeroPiano(o.misura, o.traguardo))}.`}</small></li>`).join('')}</ul>` : ''}
+      ${pianiFiniti.map((p) => `<h3>La settimana del ${xml(dataLunga(p.settimana))}: ${xml(riassuntoVerifica(p))}</h3>
+      <ul class="mie-pagine leggibile">${p.verifica.risultati.map((r) => `<li>${xml(r.obiettivo)}<small>${r.misura === 'altro' ? 'Senza un numero: lo giudico io.' : r.valore == null ? `Traguardo ${xml(numeroPiano(r.misura, r.traguardo))}: mancano i dati per misurarlo.` : `${xml(numeroPiano(r.misura, r.valore))}${r.incompleto ? ' (mancano dei giorni)' : ''} su ${xml(numeroPiano(r.misura, r.traguardo))}: ${r.raggiunto == null ? 'non si può dire' : r.raggiunto ? 'raggiunto' : 'non raggiunto'}.`}</small></li>`).join('')}</ul>`).join('')}
+    </section>` : ''}
 
     ${linkAttivi.length ? `<section id="offro" aria-labelledby="t-offro">
       <h2 id="t-offro">Cosa offro</h2>

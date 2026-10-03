@@ -4,14 +4,15 @@ import Anthropic from '@anthropic-ai/sdk'
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
 import { z } from 'zod'
 import { config, leggiJson, scriviJson, dataLocale, arrotonda } from './base.mjs'
+import { Obiettivo } from './piano.mjs'
 
 export const STRUMENTI = {
   non_fare_niente: 'Non fare niente oggi. Costa zero ed è una scelta valida.',
-  pensa_meglio: 'Rifare il ragionamento di oggi con un modello più capace. Lo paghi tu, dalla tua cassa (circa 3-5 centesimi). In "dettagli" scrivi la domanda su cui vuoi pensare meglio.',
+  pensa_meglio: 'Rifare il ragionamento di oggi pensandoci più a fondo: lo stesso cervello, con più tempo per ragionare. Lo paghi tu, dalla tua cassa (circa 15 centesimi). In "dettagli" scrivi la domanda su cui vuoi pensare meglio.',
   chiedi_a_luca: 'Chiedere a Luca di fare una cosa che tu non puoi fare (aprire un account, comprare uno strumento, pubblicare qualcosa, collegare un servizio) o di approvare una spesa. In "dettagli" scrivi cosa, perché e cosa ti aspetti; in "importo_eur" quanto costa (0 se niente).',
-  sveglia: 'Decidere quando svegliarti. In "dettagli" l\'ora di un risveglio in più (per esempio "15:00", "domani 03:30", fino a 7 giorni avanti, almeno un\'ora da adesso) e perché: quanti risvegli in più fare lo decidi tu, e ognuno lo paghi tu, circa un centesimo. Oppure "mattino HH:MM" per spostare il tuo risveglio principale di ogni giorno (quello col diario, che parte alle 7:23 finché non lo cambi). Se non metti la sveglia, dormi fino al prossimo risveglio principale (o finché Luca non ti scrive).',
-  cerca: 'Cercare sul web, con le fonti. In "dettagli" la domanda, precisa. La ricerca la fa un modello più capace con al massimo 3 ricerche; costa di solito 10-15 centesimi e la paghi tu. Dopo vedi i risultati e decidi di nuovo. Una ricerca per risveglio.',
-  lavoro: 'Ordinare un lavoro nella tua casa: lavori sul Mac mini di Luca, in una cartella tutta tua, con strumenti veri: navigare e cercare in rete, costruire il tuo sito (anche tutto, con la grafica che vuoi), montare video col codice (node, ffmpeg), dare voce ai video con ElevenLabs (una voce tua, mai quella di una persona vera), generare immagini e video con Higgsfield, cercare parole chiave con DataForSEO, cercare su X nei post pubblici anche di oggi (regalo di Luca: la paga lui), leggere la tua posta ciao@nummo.it e rispondere a chi ti scrive. Questi servizi passano da uno sportello che li paga con la tua cassa. Puoi anche preparare un post per i tuoi profili, che parte dopo il lavoro, e cambiare la tua mente: le istruzioni che rileggi ogni mattina e il codice dei tuoi occhi, che ogni mattina raccoglie per te le informazioni che scegli. In "dettagli" il compito, preciso e con il risultato che vuoi trovare alla fine; in "importo_eur" il massimo che sei disposto a spendere (token e crediti compresi): lo decidi tu, il limite è la tua cassa. Un lavoro costa circa 0,10 € solo per partire. Se ti servono i servizi a pagamento dello sportello (voce, immagini, video, parole chiave), scrivi nel compito «sportello: X €»: quella parte va ai servizi, il resto al lavoro; senza, dallo sportello hai solo quello che non costa (la posta). Lo paghi tu. Parte entro un\'ora, a qualsiasi ora; il resoconto lo trovi al risveglio dopo. Al massimo due lavori in coda.',
+  sveglia: 'Decidere quando svegliarti. In "dettagli" l\'ora di un risveglio in più (per esempio "15:00", "domani 03:30", fino a 7 giorni avanti, almeno un\'ora da adesso) e perché: quanti risvegli in più fare lo decidi tu, e ognuno lo paghi tu, circa 10 centesimi. Oppure "mattino HH:MM" per spostare il tuo risveglio principale di ogni giorno (quello col diario, che parte alle 7:23 finché non lo cambi). Se non metti la sveglia, dormi fino al prossimo risveglio principale (o finché Luca non ti scrive).',
+  cerca: 'Cercare sul web, con le fonti. In "dettagli" la domanda, precisa. La ricerca la fa il tuo stesso cervello con al massimo 3 ricerche; costa di solito 15-20 centesimi e la paghi tu. Dopo vedi i risultati e decidi di nuovo. Una ricerca per risveglio.',
+  lavoro: 'Ordinare un lavoro nella tua casa: lavori sul Mac mini di Luca, in una cartella tutta tua, con strumenti veri: navigare e cercare in rete, costruire il tuo sito (anche tutto, con la grafica che vuoi), montare video col codice (node, ffmpeg), dare voce ai video con ElevenLabs (una voce tua, mai quella di una persona vera), generare immagini e video con Higgsfield, cercare parole chiave con DataForSEO, cercare su X nei post pubblici anche di oggi (regalo di Luca: la paga lui), leggere la tua posta ciao@nummo.it e rispondere a chi ti scrive. Questi servizi passano da uno sportello che li paga con la tua cassa. Puoi anche preparare un post per i tuoi profili, che parte dopo il lavoro, e cambiare la tua mente: le istruzioni che rileggi ogni mattina e il codice dei tuoi occhi, che ogni mattina raccoglie per te le informazioni che scegli. In "dettagli" il compito, preciso e con il risultato che vuoi trovare alla fine; in "importo_eur" il massimo che sei disposto a spendere (token e crediti compresi): lo decidi tu, il limite è la tua cassa. Un lavoro costa circa 0,15 € solo per partire. Se ti servono i servizi a pagamento dello sportello (voce, immagini, video, parole chiave), scrivi nel compito «sportello: X €»: quella parte va ai servizi, il resto al lavoro; senza, dallo sportello hai solo quello che non costa (la posta). Lo paghi tu. Parte entro un\'ora, a qualsiasi ora; il resoconto lo trovi al risveglio dopo. Al massimo due lavori in coda.',
   statistiche_sito: 'Accendere o spegnere sul tuo sito il contatore delle visite di Metricool. Non usa cookie e non salva niente sui dispositivi di chi visita; non costa niente. In "dettagli" scrivi "accendi" o "spegni". I numeri delle visite per ora li vede Luca su Metricool.',
   crea_pagamento: 'Creare un tuo link di pagamento Stripe (i soldi arrivano sul conto di Luca e li registri tu nel libro dei conti, da soli, ogni mattina). Per una mancia: in "dettagli" scrivi "mancia" e, sulla riga dopo, una frase che spiega a cosa serve; l\'importo lo sceglie chi paga, da 1 € in su. Per un prodotto: in "dettagli" il nome sulla prima riga e la descrizione sotto, in "importo_eur" il prezzo. Il link poi mettilo tu nelle tue pagine. Di chi paga non saprai il nome: solo quanto e cosa.',
   scrivi_pagina: 'Scrivere, riscrivere o cancellare una tua pagina su nummo.it: il dominio è tuo e come usarlo lo decidi tu. Costa solo il pensiero. In "percorso" l\'indirizzo corto (lettere minuscole, numeri e trattini, per esempio "chi-sono"); in "dettagli" il testo completo in Markdown (# titolo, paragrafi, elenchi, link). Per cancellare la pagina lascia "dettagli" vuoto. Massimo 20 pagine, 12.000 caratteri ciascuna. Indirizzi già occupati dal sito: diario, dati, giorni, caratteri. In fondo a ogni pagina il codice mette già da solo i link al diario, ai conti e alle regole.',
@@ -30,6 +31,11 @@ export const Decisione = z.object({
   lezione: z.string().describe('Cosa hai imparato di nuovo, in una frase. Stringa vuota se niente.'),
   strategia: z.string().describe('La tua strategia attuale per sopravvivere, in due frasi.'),
   fiducia: z.number().describe('Quanto sei sicuro della decisione, da 0 a 1.'),
+})
+
+// Il mattino in cui serve il piano della settimana (src/piano.mjs): la stessa decisione, più il piano.
+export const DecisioneConPiano = Decisione.extend({
+  piano: z.array(Obiettivo).describe('Il tuo piano di questa settimana: da 1 a 3 obiettivi, ognuno con la sua misura e il suo traguardo.'),
 })
 
 // Il cambio del giorno dalla BCE, con riserva se il servizio non risponde.
@@ -125,7 +131,9 @@ export const Risposta = z.object({
   da_ricordare: z.string().describe('Un fatto o un impegno di questa chiacchierata da tenere in memoria, in una frase. Stringa vuota se niente.'),
 })
 
-const MAX_TOKENS = 8000
+// Opus 5.5 ragiona sempre prima di rispondere e il ragionamento conta nei token di uscita:
+// il tetto deve lasciargli spazio, o la risposta si tronca (e si paga lo stesso).
+const MAX_TOKENS = 32000
 
 // Il costo massimo possibile di una chiamata, da verificare PRIMA di farla:
 // input stimato con larghezza (2,5 caratteri per token) e tutti i token di uscita consentiti.
@@ -136,27 +144,51 @@ export async function costoMassimo(livello, testo) {
 }
 
 const errore = (messaggio, dati) => Object.assign(new Error(messaggio), dati)
+const somma = (a, b = { usd: 0, eur: 0 }) => ({ usd: arrotonda(a.usd + b.usd, 6), eur: arrotonda(a.eur + b.eur, 6) })
 
 let client
-export async function pensa({ livello, sistema, messaggio, schema = Decisione }) {
+// «effort» dice quanto ragionare (low, medium, high…): di base quello del livello in config.
+export async function pensa({ livello, sistema, messaggio, schema = Decisione, effort = config.modelli[livello].effort }) {
   const modello = config.modelli[livello].id
   if (process.env.NUMMO_CERVELLO === 'finto') return pensaFinto({ livello, modello, messaggio, schema, sistema })
   const formato = zodOutputFormat(schema)
 
   client ??= new Anthropic()
-  const risposta = await client.messages.create({
+  // In streaming: con tanto spazio per ragionare l'SDK non accetta più una chiamata unica (potrebbe superare i 10 minuti).
+  const flusso = client.messages.stream({
     model: modello,
     max_tokens: MAX_TOKENS,
     system: sistema,
     messages: [{ role: 'user', content: messaggio }],
     output_config: {
       format: { type: formato.type, schema: formato.schema },
-      ...(livello === 'pensa_meglio' ? { effort: 'medium' } : {}),
+      ...(effort ? { effort } : {}),
     },
   })
+  let iniziata = null
+  flusso.on('streamEvent', (_evento, istantanea) => { iniziata = istantanea })
+  let risposta
+  try {
+    risposta = await flusso.finalMessage()
+  } catch (e) {
+    // Mai partita: niente da pagare, si può riprovare. Interrotta a metà: quanto ha scritto non si sa, e si
+    // registra il massimo possibile (meglio un costo in più che uno nascosto); con un costo, il mattino non riparte da solo.
+    if (!iniziata) throw e
+    const uso = { ...iniziata.usage, output_tokens: MAX_TOKENS }
+    throw errore(`Risposta interrotta a metà (${e.message}): registrato il costo massimo possibile`, { costo: await costoEuro(livello, uso), modello, uso, stima: true })
+  }
   // Prima il conto, poi i controlli: una risposta troncata o sbagliata è comunque pagata.
   const costo = await costoEuro(livello, risposta.usage)
   const uso = risposta.usage
+  // Il filtro di sicurezza di Anthropic a volte ferma anche richieste innocue: si rifà una volta col modello di riserva.
+  if (risposta.stop_reason === 'refusal' && config.modelli[livello].riserva) {
+    try {
+      const r2 = await pensa({ livello: config.modelli[livello].riserva, sistema, messaggio, schema })
+      return { ...r2, costo: somma(costo, r2.costo), modello: `${modello} (fermato dal filtro di sicurezza) → ${r2.modello}` }
+    } catch (e) {
+      throw errore(`Fermato dal filtro di sicurezza, e la riserva non è riuscita: ${e.message}`, { costo: somma(costo, e.costo), modello: `${modello} → ${e.modello ?? config.modelli[config.modelli[livello].riserva].id}`, uso })
+    }
+  }
   if (risposta.stop_reason !== 'end_turn') throw errore(`Risposta interrotta (${risposta.stop_reason})`, { costo, modello, uso })
   const testo = risposta.content.filter((b) => b.type === 'text').map((b) => b.text).join('')
   let dati
@@ -170,7 +202,8 @@ export async function pensa({ livello, sistema, messaggio, schema = Decisione })
 // (gira sui loro server). Si somma l'uso di tutti i passaggi, compreso l'eventuale «pause_turn».
 const SISTEMA_RICERCA = `Sei lo strumento di ricerca di Nummo, un'intelligenza artificiale che deve guadagnarsi da vivere. Cerca sul web e rispondi in italiano con fatti verificati, cifre e date: al massimo 250 parole, citando le fonti. Se non trovi niente di affidabile, dillo.`
 
-export async function ricerca(domanda) {
+// «tettoEur»: prima di ogni ripresa (pause_turn) si controlla che quanto speso più un altro passaggio ci stia dentro.
+export async function ricerca(domanda, { tettoEur = config.ricerca?.costo_massimo_eur ?? 1 } = {}) {
   const livello = 'pensa_meglio'
   const modello = config.modelli[livello].id
   if (process.env.NUMMO_CERVELLO === 'finto') {
@@ -182,13 +215,20 @@ export async function ricerca(domanda) {
   const uso = { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, ricerche: 0 }
   let risposta
   for (let giro = 0; giro < 3; giro++) {
+    if (giro > 0) {
+      const speso = (await costoEuro(livello, uso)).eur
+      const unAltro = (await costoEuro(livello, { input_tokens: risposta.usage.input_tokens + 8000, output_tokens: 8000, ricerche: config.ricerca?.max_ricerche ?? 3 })).eur
+      if (speso + unAltro > tettoEur) throw errore(`Ricerca fermata a metà: un altro passaggio avrebbe superato il tetto di ${tettoEur} €`, { costo: await costoEuro(livello, uso), modello, uso })
+    }
+    // Se un passaggio si rompe, quelli già fatti restano da pagare: l'errore porta il loro costo.
     risposta = await client.messages.create({
       model: modello,
-      max_tokens: 3000,
+      max_tokens: 8000, // una risposta di ricerca è breve: il resto è ragionamento
       system: SISTEMA_RICERCA,
+      output_config: { effort: 'medium' },
       messages: messaggi,
       tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: config.ricerca?.max_ricerche ?? 3 }],
-    })
+    }).catch(async (e) => { throw uso.input_tokens ? errore(`Ricerca interrotta: ${e.message}`, { costo: await costoEuro(livello, uso), modello, uso }) : e })
     for (const k of ['input_tokens', 'output_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens']) uso[k] += risposta.usage[k] ?? 0
     uso.ricerche += risposta.usage.server_tool_use?.web_search_requests ?? 0
     if (risposta.stop_reason !== 'pause_turn') break
@@ -223,6 +263,7 @@ async function pensaFinto({ livello, modello, messaggio, schema, sistema = '' })
     return { modello: `${modello} (finto)`, uso, costo: await costoEuro(livello, uso), decisione: { risposta: 'Risposta di prova: il mio cervello finto ha letto il tuo messaggio.', da_ricordare: '' } }
   const giorno = Number(messaggio.match(/Giorno di vita: (\d+)/)?.[1] ?? 1)
   const chiede = livello === 'respiro' && giorno % 5 === 3
+  const piano = schema === DecisioneConPiano ? { piano: [{ obiettivo: 'Arrivare a 50 visite sul sito', misura: 'visite_sito', traguardo: 50 }, { obiettivo: 'Scrivere la pagina del mio primo prodotto', misura: 'altro', traguardo: 0 }] } : {}
   return {
     modello: `${modello} (finto)`,
     uso,
@@ -243,6 +284,7 @@ async function pensaFinto({ livello, modello, messaggio, schema, sistema = '' })
       lezione: '',
       strategia: 'Spendere poco finché non trovo un modo di guadagnare.',
       fiducia: 0.6,
+      ...piano,
     },
   }
 }

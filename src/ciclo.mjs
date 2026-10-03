@@ -6,7 +6,7 @@ import path from 'node:path'
 import { RADICE, config, costituzioneTesto, leggiJsonl, aggiungiJsonl, leggiJson, scriviJson, adesso, dataLocale, giornoDiVita, inSostegno, euro, arrotonda } from './base.mjs'
 import { voci, registra, registraCosto, conti, giaRegistrato, puoPagare, traguardo } from './registro.mjs'
 import { scriviPagina, elencoPagine } from './pagine.mjs'
-import { pensa, costoMassimo, ricerca, STRUMENTI, Racconto } from './cervello.mjs'
+import { pensa, costoMassimo, ricerca, STRUMENTI, Racconto, Decisione, DecisioneConPiano } from './cervello.mjs'
 import * as github from './github.mjs'
 import { disegnaPost, jpegPost } from './immagine.mjs'
 import { leggiEntrata, leggiSpesa } from './messaggi.mjs'
@@ -17,6 +17,7 @@ import * as telegram from './telegram.mjs'
 import { riassunto as riassuntoNumeri } from './numeri.mjs'
 import { applicaEsiti, costiInSospeso } from './esiti.mjs'
 import { NOMI_STATO } from './banconota.mjs'
+import * as piano from './piano.mjs'
 
 const richiesto = ['mattina', 'extra'].includes(process.argv[2]) ? process.argv[2] : 'controlla'
 let tipoCiclo = 'mattina'     // mattina: il respiro del giorno (sostegno); extra: un risveglio in più (lo paga Nummo)
@@ -56,6 +57,7 @@ const aggiungiNotizia = (testo) => scriviJson('notizie.json', [...notizie(), { q
 
 // I pagamenti sui link di Nummo: vendite fra i guadagni, mance fra il sostegno del pubblico,
 // tasse e commissione Stripe tolte subito. Ogni pagamento si registra una volta sola (rif = sessione Stripe).
+// Restituisce quanti incassi nuovi e se Stripe si è letto senza errori (serve alla verifica del piano).
 async function registraIncassi() {
   let nuovi = 0
   try {
@@ -63,7 +65,8 @@ async function registraIncassi() {
       const rif = `stripe ${i.sessione}`
       if (giaRegistrato(rif)) continue
       const tipo = i.tipo === 'mancia' ? 'sostegno_pubblico' : 'guadagno'
-      registra({ tipo, importo_eur: i.importo_eur, descrizione: `${i.tipo === 'mancia' ? 'Mancia' : 'Vendita'}: ${i.nome} (Stripe)`, rif })
+      // «pagato_il»: quando ha pagato davvero (si registra al risveglio dopo): serve al piano della settimana.
+      registra({ tipo, importo_eur: i.importo_eur, descrizione: `${i.tipo === 'mancia' ? 'Mancia' : 'Vendita'}: ${i.nome} (Stripe)`, rif, pagato_il: i.pagato_il })
       if (config.tasse_su_incassi > 0 && !giaRegistrato(`${rif} tasse`))
         registra({ tipo: 'tasse', importo_eur: -arrotonda(i.importo_eur * config.tasse_su_incassi), descrizione: `Tasse e contributi (${config.tasse_su_incassi * 100}%)`, rif: `${rif} tasse` })
       if (i.commissione_eur > 0 && !giaRegistrato(`${rif} commissione`))
@@ -73,8 +76,9 @@ async function registraIncassi() {
     }
   } catch (e) {
     console.error(`Incassi non letti: ${e.message}`)
+    return { nuovi, letti: false }
   }
-  return nuovi
+  return { nuovi, letti: true }
 }
 
 // L'affitto: dal mese in config, una volta al mese, al primo risveglio del mattino. Si paga anche se si
@@ -138,7 +142,7 @@ async function leggiLuca() {
   return { novita }
 }
 
-function osservazione({ c, richieste, memoria }) {
+function osservazione({ c, richieste, memoria, conPiano }) {
   const giorniSostegno = Math.round((Date.parse(config.sostegno_vitale.fino_a) - Date.parse(dataLocale())) / 86400000)
   const diari = leggiJsonl('diario.jsonl').filter((d) => d.decisione).slice(-7)
   const righe = [
@@ -171,6 +175,7 @@ function osservazione({ c, richieste, memoria }) {
         `Le tue pagine su nummo.it: ${elencoPagine().map((p) => `/${p.percorso}/ («${p.titolo}»)`).join(', ') || 'nessuna'}.`,
       ]
     })(),
+    ...piano.righe({ chiedi: conPiano }),
     '',
     'I TUOI STRUMENTI (non ne hai altri)',
     ...Object.entries(STRUMENTI).map(([nome, cosa]) => `- ${nome}: ${cosa}`),
@@ -264,7 +269,7 @@ async function main() {
 
   const luca = await leggiLuca()
   if (luca.fermo) return fine('Luca ha chiesto lo stop.')
-  const incassati = await registraIncassi()
+  const { nuovi: incassati, letti: incassiLetti } = await registraIncassi()
   if (tipoCiclo === 'mattina') pagaAffitto()
 
   // Le risposte alle richieste diventano notizie.
@@ -291,9 +296,16 @@ async function main() {
     if (dovuta) sveglia.spegni()
   }
 
+  // Il piano della settimana: al mattino si chiudono i conti delle settimane finite e, se manca, si chiede quello nuovo.
+  // «verificati» sono quelli chiusi oggi: se il mattino fallisce dopo la verifica, il nuovo tentativo li racconta lo stesso.
+  if (tipoCiclo === 'mattina') piano.verificaPiani({ incassiLetti })
+  const verificati = tipoCiclo === 'mattina' ? piano.piani().filter((p) => p.verifica && dataLocale(new Date(p.verifica.quando)) === dataLocale()) : []
+  const conPiano = tipoCiclo === 'mattina' && piano.serveIlPiano()
+  const schema = conPiano ? DecisioneConPiano : Decisione
+
   const c = conti()
   const memoria = leggiJson('memoria.json', { strategia: '', lezioni: [] })
-  const messaggio = osservazione({ c, richieste, memoria })
+  const messaggio = osservazione({ c, richieste, memoria, conPiano })
 
   // Il sostegno copre un respiro al giorno, quello del mattino. Prima di respirare si controlla
   // di poter pagare il costo massimo possibile: dopo, i soldi sono già spesi.
@@ -311,7 +323,7 @@ async function main() {
 
   let r
   try {
-    r = await pensa({ livello: 'respiro', sistema: SISTEMA, messaggio })
+    r = await pensa({ livello: 'respiro', sistema: SISTEMA, messaggio, schema })
   } catch (e) {
     if (e.costo) registraCosto({ categoria, importo_eur: e.costo.eur, descrizione: `Respiro non riuscito (${e.modello}): ${e.message}`, rif, giaSostenuto: true })
     // A Luca lo si dice una volta sola per mattina: i tentativi successivi restano in silenzio.
@@ -341,22 +353,27 @@ async function main() {
         costoTotale += res.costo.eur
         fattaRicerca = { domanda: richiestaRicerca.dettagli, risposta: res.testo, fonti: res.fonti, costo_eur: arrotonda(res.costo.eur, 6) }
         const testoDopo = `${messaggio}\n\nHAI CERCATO: ${fattaRicerca.domanda}\nRISULTATI:\n${res.testo}\nFONTI: ${res.fonti.join(' ') || 'nessuna'}\n\nOra decidi, con questi risultati davanti. Questa volta niente cerca e niente pensa_meglio.`
-        const r2 = await pensa({ livello: 'respiro', sistema: SISTEMA, messaggio: testoDopo })
+        // Anche la seconda decisione si paga solo se c'è il suo costo massimo, dopo quello che la ricerca è costata.
+        const massimoDopo = await costoMassimo('respiro', SISTEMA + testoDopo)
+        if (!puoPagare('cervello', massimoDopo)) throw Object.assign(new Error(`per decidere di nuovo servivano fino a ${euro(massimoDopo, 4)} e non li ho; tengo la decisione di prima`), { dopoLaRicerca: true })
+        const r2 = await pensa({ livello: 'respiro', sistema: SISTEMA, messaggio: testoDopo, schema })
         registraCosto({ categoria: 'cervello', importo_eur: r2.costo.eur, descrizione: `Decisione dopo la ricerca (${r2.modello}, ${r2.uso.input_tokens}+${r2.uso.output_tokens} token)`, rif, giaSostenuto: true })
         costoTotale += r2.costo.eur
         d = { ...r2.decisione, azioni: r2.decisione.azioni.filter((a) => !['cerca', 'pensa_meglio'].includes(a.strumento)) }
         modello = `${r.modello} → ricerca ${res.modello} → ${r2.modello}`
       } catch (e) {
         if (e.costo) {
-          registraCosto({ categoria: 'cervello', importo_eur: e.costo.eur, descrizione: `Ricerca non riuscita (${e.modello}): ${e.message}`, rif, giaSostenuto: true })
+          registraCosto({ categoria: 'cervello', importo_eur: e.costo.eur, descrizione: `${fattaRicerca ? 'Decisione dopo la ricerca' : 'Ricerca'} non riuscita (${e.modello}): ${e.message}`, rif, giaSostenuto: true })
           costoTotale += e.costo.eur
         }
-        d.motivo += ` (Ho provato a cercare «${richiestaRicerca.dettagli}», ma la ricerca non è riuscita: ${e.message}.)`
+        d.motivo += fattaRicerca
+          ? ` (Ho cercato «${richiestaRicerca.dettagli}», ma poi non ho potuto decidere di nuovo: ${e.message}.)`
+          : ` (Ho provato a cercare «${richiestaRicerca.dettagli}», ma la ricerca non è riuscita: ${e.message}.)`
       }
     }
   }
 
-  // Pensare meglio: una seconda chiamata a un modello più capace, a spese di Nummo.
+  // Pensare meglio: una seconda chiamata, con più ragionamento, a spese di Nummo.
   const domanda = d.azioni.find((a) => a.strumento === 'pensa_meglio')
   if (domanda) {
     d.azioni = d.azioni.filter((a) => a !== domanda)
@@ -366,7 +383,7 @@ async function main() {
       d.motivo += ` (Volevo pensarci meglio, ma servivano fino a ${euro(massimo2, 4)} e non li ho.)`
     } else {
       try {
-        const r2 = await pensa({ livello: 'pensa_meglio', sistema: SISTEMA, messaggio: testo2 })
+        const r2 = await pensa({ livello: 'pensa_meglio', sistema: SISTEMA, messaggio: testo2, schema })
         registraCosto({ categoria: 'cervello', importo_eur: r2.costo.eur, descrizione: `Pensa meglio (${r2.modello}, ${r2.uso.input_tokens}+${r2.uso.output_tokens} token)`, rif, giaSostenuto: true })
         costoTotale += r2.costo.eur
         d = { ...r2.decisione, azioni: r2.decisione.azioni.filter((a) => a.strumento !== 'pensa_meglio') }
@@ -419,6 +436,9 @@ async function main() {
   if (d.lezione?.trim()) memoria.lezioni = [...memoria.lezioni, `Giorno ${c.giorno}: ${d.lezione.trim()}`].slice(-30)
   if (d.strategia?.trim()) memoria.strategia = d.strategia.trim()
   scriviJson('memoria.json', memoria)
+  const pianoNuovo = conPiano ? piano.salvaPiano(d.piano ?? [], c.giorno) : null
+  const pianoMancante = conPiano && !pianoNuovo // il campo era vuoto: si richiede al prossimo mattino, e lo si dice
+  const pianoOra = tipoCiclo === 'mattina' ? piano.pianoCorrente() : null
 
   // Il racconto: una seconda chiamata, pagata da Luca (categoria «diario»). Solo al mattino: i risvegli
   // in più finiscono nel diario come note della giornata, senza articolo né immagine.
@@ -439,10 +459,14 @@ async function main() {
         `Cosa hai fatto: ${esitiAzioni.map((a) => `${a.strumento} (${a.esito})`).join('; ') || 'niente'}`,
         d.lezione ? `Cosa hai imparato: ${d.lezione}` : '',
         fattaRicerca ? `Hai cercato sul web «${fattaRicerca.domanda}» e hai trovato: ${fattaRicerca.risposta}` : '',
+        ...verificati.map((p) => `Il piano della settimana dal ${p.settimana} al ${p.al}, confrontato coi numeri veri: ${piano.riassuntoVerifica(p)}. ${p.verifica.risultati.map((x) => `«${x.obiettivo}»: ${x.valore ?? 'nessun dato'} su ${x.traguardo}`).join('; ')}.`),
+        pianoNuovo ? `Il tuo piano per questa settimana, fino a domenica ${pianoNuovo.al}: ${pianoNuovo.obiettivi.map((o) => `«${o.obiettivo}» (${o.misura}, traguardo ${o.traguardo})`).join('; ')}.`
+          : pianoOra ? `Il tuo piano di questa settimana, a che punto sei fino a ieri: ${piano.avanzamento(pianoOra).join('; ')}.`
+          : pianoMancante ? 'Oggi dovevi scrivere il piano della settimana e non l\'hai scritto: te lo richiedi domattina.' : '',
         notizie().length ? `Novità da Luca: ${notizie().map((n) => n.testo).join('; ')}` : '',
       ].filter(Boolean).join('\n')
       const r3 = await pensa({
-        livello: 'respiro', schema: Racconto,
+        livello: 'respiro', schema: Racconto, effort: 'low', // raccontare i fatti chiede poco ragionamento
         sistema: `${VOCE}\n\nAdesso scrivi il tuo diario: l'articolo di oggi per nummo.it/diario, il testo per i social e la frase per l'immagine. Il diario racconta, non vende: niente promozioni dei tuoi prodotti. Usa solo i fatti che trovi qui. L'articolo lo scrivi in italiano; il testo per i social e la frase per l'immagine nella lingua dei tuoi profili, se nella strategia o nelle tue istruzioni ne hai scelta una, altrimenti in italiano.`,
         messaggio: fattiDelGiorno,
       })
@@ -463,8 +487,10 @@ async function main() {
     risveglio: tipoCiclo === 'extra' ? (motivoSveglia ? `la mia sveglia («${motivoSveglia}»)` : perche.startsWith('la sveglia') ? 'la mia sveglia' : 'un messaggio di Luca') : undefined, osservazione: d.osservazione, decisione: d.decisione, motivo: d.motivo, azioni: esitiAzioni,
     titolo: racconto?.titolo ?? '', articolo: racconto?.articolo ?? '', post: racconto?.post?.trim() ?? '', frase, uscita,
     lezione: d.lezione, fiducia: d.fiducia,
+    piano: pianoNuovo?.obiettivi, piano_mancante: pianoMancante || undefined, piani_verificati: verificati.length ? verificati.map((p) => p.settimana) : undefined,
   })
   scriviJson('notizie.json', []) // lette: da qui ripartono vuote
+  if (pianoMancante) aggiungiNotizia('Stamattina il campo «piano» è arrivato vuoto: il piano della settimana non c\'è ancora, e te lo richiedo al prossimo risveglio del mattino.')
 
   if (uscita) {
     const cartella = path.resolve(RADICE, process.env.NUMMO_USCITA || 'uscita', uscita)
@@ -478,6 +504,8 @@ async function main() {
     await telegram.scriviALuca([
       `Giorno ${dopo.giorno}. Cassa ${euro(dopo.cassa)}, stato ${NOMI_STATO[dopo.stato].toLowerCase()}.`,
       `Ho deciso: ${d.decisione}`,
+      ...verificati.map((p) => `La settimana dal ${p.settimana}: ${piano.riassuntoVerifica(p)}.`),
+      pianoNuovo ? `Il mio piano fino a domenica:\n${pianoNuovo.obiettivi.map((o) => `- ${o.obiettivo}`).join('\n')}` : pianoMancante ? 'Il piano della settimana: non l\'ho scritto, ci riprovo domattina.' : '',
       racconto ? `Il diario di oggi: ${config.sito}/diario/giorno-${dopo.giorno}/` : '',
     ].filter(Boolean).join('\n\n'))
 
